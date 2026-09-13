@@ -1,30 +1,54 @@
 import { create } from "zustand";
 import { stepAi } from "./ai";
 import { setMuted, sfx, unlockAudio } from "./audio";
+import {
+  emptyCollection,
+  isLegendUnlocked,
+  openProduct,
+  readCollection,
+  STARTER_LEGENDS,
+  unlockedLegendIds,
+  writeCollection,
+  type CollectionState,
+  type OpenResult,
+  type ProductId,
+} from "./collection";
 import { applyAction, createGame } from "./engine";
 import { LEGENDS } from "./cards";
 import { readMuted, writeMuted } from "./mute";
 import type { GameAction, GameState, Mode, SeatConfig, SetupConfig } from "./types";
 
-export type Screen = "title" | "setup" | "play";
+export type Screen = "title" | "shop" | "setup" | "play";
 
-const LEGEND_IDS = [
-  "jinx",
-  "viktor",
-  "leesin",
-  "annie",
-  "lux",
-  "garen",
-  "ahri",
-  "darius",
-];
+function legendPool(collection: CollectionState): string[] {
+  const ids = unlockedLegendIds(collection);
+  return ids.length ? ids : [...STARTER_LEGENDS];
+}
 
-function defaultSeats(n: number, allHuman: boolean): SeatConfig[] {
+function defaultSeats(
+  n: number,
+  allHuman: boolean,
+  unlocked: readonly string[] = STARTER_LEGENDS,
+): SeatConfig[] {
+  const pool = unlocked.length ? unlocked : STARTER_LEGENDS;
   return Array.from({ length: n }, (_, i) => ({
     name: i === 0 ? "You" : `Player ${i + 1}`,
     kind: allHuman || i === 0 ? ("human" as const) : ("ai" as const),
-    legendId: LEGEND_IDS[i % LEGEND_IDS.length]!,
+    legendId: pool[i % pool.length]!,
   }));
+}
+
+function remapSeats(seats: SeatConfig[], unlocked: readonly string[]): SeatConfig[] {
+  const pool = unlocked.length ? unlocked : STARTER_LEGENDS;
+  const used = new Set<string>();
+  return seats.map((seat, i) => {
+    let legendId = pool.includes(seat.legendId) ? seat.legendId : pool[i % pool.length]!;
+    if (used.has(legendId)) {
+      legendId = pool.find((id) => !used.has(id)) ?? legendId;
+    }
+    used.add(legendId);
+    return { ...seat, legendId };
+  });
 }
 
 type GameStore = {
@@ -36,6 +60,8 @@ type GameStore = {
   rules: boolean;
   aiBusy: boolean;
   muted: boolean;
+  collection: CollectionState;
+  lastOpen: (OpenResult & { productId: ProductId }) | null;
   setScreen: (s: Screen) => void;
   setMode: (m: Mode) => void;
   setSeatCount: (n: 3 | 4) => void;
@@ -50,6 +76,9 @@ type GameStore = {
   setRules: (v: boolean) => void;
   toggleMute: () => void;
   hydrateMute: () => void;
+  hydrateCollection: () => void;
+  buyProduct: (id: ProductId) => void;
+  clearLastOpen: () => void;
   toTitle: () => void;
 };
 
@@ -126,6 +155,8 @@ export const useGame = create<GameStore>((set, get) => ({
   rules: false,
   aiBusy: false,
   muted: false,
+  collection: emptyCollection(),
+  lastOpen: null,
   setScreen: (screen) => set({ screen }),
   setMode: (mode) =>
     set((s) => ({
@@ -136,7 +167,7 @@ export const useGame = create<GameStore>((set, get) => ({
           mode === "war"
             ? s.setup.seats.length === 4
               ? s.setup.seats
-              : [...s.setup.seats, ...defaultSeats(4, true)].slice(0, 4)
+              : [...s.setup.seats, ...defaultSeats(4, true, legendPool(s.collection))].slice(0, 4)
             : s.setup.seats.slice(0, 3),
       },
     })),
@@ -145,17 +176,22 @@ export const useGame = create<GameStore>((set, get) => ({
       setup: {
         ...s.setup,
         mode: n === 4 ? "war" : "skirmish",
-        seats: n === s.setup.seats.length ? s.setup.seats : defaultSeats(n, true),
+        seats:
+          n === s.setup.seats.length
+            ? s.setup.seats
+            : defaultSeats(n, true, legendPool(s.collection)),
       },
     })),
   patchSeat: (i, patch) =>
     set((s) => {
+      if (patch.legendId && !isLegendUnlocked(s.collection, patch.legendId)) return s;
       const seats = s.setup.seats.map((seat, idx) => (idx === i ? { ...seat, ...patch } : seat));
       if (patch.legendId) {
+        const pool = legendPool(s.collection);
         for (let j = 0; j < seats.length; j++) {
           if (j !== i && seats[j]!.legendId === patch.legendId) {
             const used = new Set(seats.map((x) => x.legendId));
-            const alt = LEGEND_IDS.find((id) => !used.has(id) || id === seats[j]!.legendId);
+            const alt = pool.find((id) => !used.has(id) || id === seats[j]!.legendId);
             if (alt && alt !== patch.legendId) seats[j] = { ...seats[j]!, legendId: alt };
           }
         }
@@ -189,11 +225,12 @@ export const useGame = create<GameStore>((set, get) => ({
       unlockAudio();
       if (aiTimer) clearTimeout(aiTimer);
       const setup = get().setup;
+      const pool = legendPool(get().collection);
       const used = new Set<string>();
       const seats = setup.seats.map((seat, i) => {
-        let legendId = seat.legendId;
+        let legendId = pool.includes(seat.legendId) ? seat.legendId : pool[i % pool.length]!;
         if (used.has(legendId)) {
-          legendId = LEGEND_IDS.find((id) => !used.has(id)) ?? legendId;
+          legendId = pool.find((id) => !used.has(id)) ?? legendId;
         }
         used.add(legendId);
         return {
@@ -251,8 +288,28 @@ export const useGame = create<GameStore>((set, get) => ({
     setMuted(muted);
     set({ muted });
   },
+  hydrateCollection: () => {
+    const collection = readCollection();
+    const unlocked = legendPool(collection);
+    set((s) => ({
+      collection,
+      setup: { ...s.setup, seats: remapSeats(s.setup.seats, unlocked) },
+    }));
+  },
+  buyProduct: (id) => {
+    const result = openProduct(get().collection, id);
+    writeCollection(result.collection);
+    if (!get().muted) sfx("pack");
+    const unlocked = legendPool(result.collection);
+    set((s) => ({
+      collection: result.collection,
+      lastOpen: { ...result, productId: id },
+      setup: { ...s.setup, seats: remapSeats(s.setup.seats, unlocked) },
+    }));
+  },
+  clearLastOpen: () => set({ lastOpen: null }),
   toTitle: () => {
     if (aiTimer) clearTimeout(aiTimer);
-    set({ screen: "title", state: null, selected: [], inspect: null, aiBusy: false });
+    set({ screen: "title", state: null, selected: [], inspect: null, aiBusy: false, lastOpen: null });
   },
 }));

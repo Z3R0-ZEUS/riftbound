@@ -269,6 +269,37 @@
   color: var(--color-subtle);
 }
 
+.pack-card {
+  border: 1px solid var(--color-line);
+  background:
+    linear-gradient(180deg, rgb(232 230 223 / 0.04), transparent 36%),
+    var(--color-surface);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 0.35);
+}
+
+.pack-art {
+  aspect-ratio: 16 / 10;
+  background: #05060a;
+}
+
+.pack-fan {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem 0.4rem;
+}
+
+.pack-reveal {
+  opacity: 0.35;
+  transform: translateY(8px) scale(0.96);
+}
+
+.pack-reveal.is-shown {
+  opacity: 1;
+  transform: none;
+  animation: pack-flip 380ms var(--ease-out);
+}
+
 .shake {
   animation: shake 420ms var(--ease-out);
 }
@@ -362,6 +393,17 @@
   }
 }
 
+@keyframes pack-flip {
+  from {
+    opacity: 0;
+    transform: translateY(10px) rotateY(-18deg) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes score-float {
   0% {
     opacity: 0;
@@ -392,7 +434,8 @@
   .vfx-impact,
   .vfx-spark,
   .march-trail,
-  .bf-march {
+  .bf-march,
+  .pack-reveal.is-shown {
     animation: none;
     transition: none;
   }

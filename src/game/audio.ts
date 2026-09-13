@@ -14,7 +14,9 @@ export type SfxName =
   | "ready"
   | "win"
   | "combat"
-  | "move";
+  | "move"
+  | "pack"
+  | "reveal";
 
 type Cue = SfxName;
 
@@ -144,6 +146,16 @@ class SoundManager {
         tone(c, 392, 0.15, "triangle", 0.045);
         tone(c, 523, 0.16, "triangle", 0.04, 0.11);
         tone(c, 659, 0.26, "triangle", 0.045, 0.22);
+        break;
+      case "pack":
+        noiseBurst(c, 0.1, 0.04);
+        tone(c, 180, 0.12, "sawtooth", 0.03);
+        tone(c, 360, 0.1, "triangle", 0.026, 0.06);
+        tone(c, 540, 0.09, "sine", 0.02, 0.12);
+        break;
+      case "reveal":
+        tone(c, 660, 0.07, "triangle", 0.03);
+        tone(c, 880, 0.09, "sine", 0.022, 0.05);
         break;
       default:
         break;
