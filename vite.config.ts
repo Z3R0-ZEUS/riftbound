@@ -30,7 +30,22 @@ function hasGlobbedMigrations(root: string): boolean {
  * migrations — no schema to apply — skips it entirely rather than paying for a
  * PGLite instance it never queries.
  */
-function pgliteBootstrapPlugin(): Plugin {
+function zipDownloadPlugin(): Plugin {
+  return {
+    name: "riftbound-zip-download",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const pathOnly = (req.url ?? "").split("?", 1)[0] ?? "";
+        if (pathOnly === "/riftbound.zip") {
+          res.setHeader("Content-Type", "application/zip");
+          res.setHeader("Content-Disposition", 'attachment; filename="riftbound.zip"');
+        }
+        next();
+      });
+    },
+  };
+}
   return {
     name: "app-builder:pglite-bootstrap",
     apply: "serve",
@@ -158,6 +173,7 @@ export default defineConfig(({ command, isPreview }) => ({
   },
   resolve: { tsconfigPaths: true },
   plugins: [
+    zipDownloadPlugin(),
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.
     authPopupPlugin(),

@@ -1,4 +1,5 @@
-import { BookOpen, Bot, Swords, Users } from "lucide-react";
+import { useState } from "react";
+import { BookOpen, Bot, Download, Swords, Users } from "lucide-react";
 import { DOMAINS, getLegend, LEGENDS } from "@/game/cards";
 import { useGame } from "@/game/store";
 import { cn } from "@/lib/cn";
@@ -10,6 +11,28 @@ export function TitleScreen() {
   const fillAi = useGame((s) => s.fillAi);
   const start = useGame((s) => s.start);
   const setRules = useGame((s) => s.setRules);
+  const [dl, setDl] = useState<"idle" | "busy" | "done" | "err">("idle");
+
+  async function downloadZip() {
+    setDl("busy");
+    try {
+      const res = await fetch("/riftbound.zip");
+      if (!res.ok) throw new Error("missing");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "riftbound.zip";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setDl("done");
+    } catch {
+      setDl("err");
+    }
+  }
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-bg text-fg">
@@ -64,14 +87,25 @@ export function TitleScreen() {
             You vs two AIs
           </button>
         </div>
-        <button
-          type="button"
-          className="mt-5 inline-flex items-center gap-2 text-sm text-muted hover:text-fg"
-          onClick={() => setRules(true)}
-        >
-          <BookOpen className="size-4" />
-          How to play
-        </button>
+        <div className="mt-5 flex flex-wrap items-center gap-4">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-sm text-muted hover:text-fg"
+            onClick={() => setRules(true)}
+          >
+            <BookOpen className="size-4" />
+            How to play
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 text-sm text-accent hover:text-fg disabled:opacity-50"
+            onClick={() => void downloadZip()}
+            disabled={dl === "busy"}
+          >
+            <Download className="size-4" />
+            {dl === "busy" ? "Preparing zip…" : dl === "done" ? "Saved riftbound.zip" : dl === "err" ? "Download failed — try again" : "Download game (.zip)"}
+          </button>
+        </div>
       </div>
     </div>
   );
