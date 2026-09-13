@@ -18,11 +18,17 @@
  *
  * Vite picks the values up because `loadEnv` prefix-matches entries already in
  * `process.env`, which is why the merge has to happen before Vite starts.
+ *
+ * Bare commands such as `vite` are resolved to the workspace package (then
+ * `node node_modules/vite/bin/vite.js …`). Windows `spawn("vite")` does not
+ * search `node_modules/.bin` and fails with ENOENT; launching the JS file
+ * through `process.execPath` works on Windows, macOS, and Linux.
  */
 import { spawn } from "node:child_process";
-import { readFileSync, realpathSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { createRequire } from "node:module";
 import { constants as osConstants } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const APP_ENV_REL_PATH = ".grok/app-env.json";
@@ -87,6 +93,72 @@ export function projectRoot() {
   return dirname(dirname(fileURLToPath(import.meta.url)));
 }
 
+function looksLikePath(command) {
+  return isAbsolute(command) || command.includes("/") || command.includes("\\");
+}
+
+/**
+ * Absolute path to a workspace package's bin script, or `null`.
+ * For Vite that is `node_modules/vite/bin/vite.js`.
+ */
+export function resolvePackageBin(command, root = projectRoot()) {
+  if (!command || looksLikePath(command)) return null;
+  try {
+    const req = createRequire(join(root, "package.json"));
+    const pkgPath = req.resolve(`${command}/package.json`);
+    const bin = JSON.parse(readFileSync(pkgPath, "utf8")).bin;
+    const rel =
+      typeof bin === "string"
+        ? bin
+        : bin && typeof bin === "object"
+          ? (bin[command] ?? Object.values(bin)[0])
+          : null;
+    if (typeof rel !== "string" || !rel) return null;
+    const script = join(dirname(pkgPath), rel);
+    return existsSync(script) ? script : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Turn a bare command (`vite`) into a spawn target that exists on Windows.
+ * Absolute / relative paths (tests spawn `process.execPath`) are left alone.
+ */
+export function resolveSpawnTarget(command, root = projectRoot(), platform = process.platform) {
+  if (!command) return { command, args: [], shell: false };
+  if (looksLikePath(command)) return { command, args: [], shell: false };
+
+  const script = resolvePackageBin(command, root);
+  if (script) return { command: process.execPath, args: [script], shell: false };
+
+  const binDir = join(root, "node_modules", ".bin");
+  if (platform === "win32") {
+    for (const name of [`${command}.cmd`, `${command}.exe`, command]) {
+      const candidate = join(binDir, name);
+      if (existsSync(candidate)) {
+        return { command: candidate, args: [], shell: name.endsWith(".cmd") };
+      }
+    }
+    return { command, args: [], shell: true };
+  }
+
+  const unix = join(binDir, command);
+  if (existsSync(unix)) return { command: unix, args: [], shell: false };
+  return { command, args: [], shell: false };
+}
+
+/** Prepend `<root>/node_modules/.bin` so nested tools resolve on Windows too. */
+export function envWithLocalBin(env, root = projectRoot()) {
+  const next = { ...env };
+  const pathKey = Object.keys(next).find((k) => k.toLowerCase() === "path") ?? "PATH";
+  const bin = join(root, "node_modules", ".bin");
+  const current = String(next[pathKey] ?? "");
+  const parts = current.split(delimiter).filter(Boolean);
+  if (!parts.includes(bin)) next[pathKey] = [bin, ...parts].join(delimiter);
+  return next;
+}
+
 /**
  * Whether `moduleUrl` is the script node was asked to run.
  *
@@ -110,8 +182,14 @@ function main(argv) {
     console.error("usage: node scripts/with-app-env.mjs <command> [args…]");
     process.exit(2);
   }
-  const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
-  const child = spawn(command, args, { stdio: "inherit", env });
+  const root = projectRoot();
+  const env = envWithLocalBin(mergeAppEnv(readAppEnv(root), process.env), root);
+  const target = resolveSpawnTarget(command, root);
+  const child = spawn(target.command, [...target.args, ...args], {
+    stdio: "inherit",
+    env,
+    shell: target.shell,
+  });
   // The dev server is long-running and is stopped by signalling this wrapper.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
     process.on(signal, () => child.kill(signal));
