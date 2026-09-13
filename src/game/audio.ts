@@ -8,6 +8,10 @@ export type SfxName =
   | "march"
   | "showdown"
   | "score"
+  | "hold"
+  | "deny"
+  | "invite"
+  | "ready"
   | "win"
   | "combat"
   | "move";
@@ -119,6 +123,22 @@ class SoundManager {
       case "score":
         tone(c, 440, 0.09, "triangle", 0.045);
         tone(c, 660, 0.13, "triangle", 0.036, 0.07);
+        break;
+      case "hold":
+        tone(c, 392, 0.1, "sine", 0.04);
+        tone(c, 588, 0.14, "triangle", 0.032, 0.06);
+        break;
+      case "deny":
+        tone(c, 160, 0.12, "square", 0.03);
+        tone(c, 110, 0.14, "sawtooth", 0.022, 0.05);
+        break;
+      case "invite":
+        tone(c, 494, 0.06, "triangle", 0.03);
+        tone(c, 740, 0.08, "sine", 0.024, 0.05);
+        break;
+      case "ready":
+        tone(c, 520, 0.07, "sine", 0.03);
+        tone(c, 780, 0.09, "triangle", 0.022, 0.05);
         break;
       case "win":
         tone(c, 392, 0.15, "triangle", 0.045);

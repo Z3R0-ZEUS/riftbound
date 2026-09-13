@@ -229,6 +229,17 @@ function refreshControl(s: GameState, bf: BattlefieldState): number | null {
   return bf.controller;
 }
 
+/** War: first seat does not bring a battlefield. Skirmish: every seat does. */
+export function battlefieldSeats<T>(mode: GameState["mode"], seats: T[]): T[] {
+  return mode === "war" ? seats.slice(1) : seats;
+}
+
+/** Eighth point on a conquer only if every other field was already scored this turn. */
+export function sweptForFinalPoint(s: GameState, bfId: string): boolean {
+  const others = s.battlefields.filter((b) => b.id !== bfId);
+  return others.length > 0 && others.every((b) => s.scoredThisTurn.includes(b.id));
+}
+
 function tryScore(s: GameState, owner: number, kind: "hold" | "conquer", bfId: string) {
   if (s.winner !== null) return;
   if (s.scoredThisTurn.includes(bfId)) return;
@@ -243,10 +254,7 @@ function tryScore(s: GameState, owner: number, kind: "hold" | "conquer", bfId: s
       log(s, `${p.name} holds and claims the Rift — ${p.points} points`, owner);
       return;
     }
-    const othersScored = s.battlefields
-      .filter((b) => b.id !== bfId)
-      .every((b) => s.scoredThisTurn.includes(b.id));
-    if (othersScored) {
+    if (sweptForFinalPoint(s, bfId)) {
       p.points += 1;
       s.scoredThisTurn.push(bfId);
       s.winner = owner;
@@ -979,7 +987,7 @@ export function createGame(setup: SetupConfig): GameState {
     draw(s, idx, 4);
   });
 
-  const contrib = setup.mode === "war" ? setup.seats.slice(1) : setup.seats;
+  const contrib = battlefieldSeats(setup.mode, setup.seats);
   contrib.forEach((seat, i) => {
     const legend = getLegend(seat.legendId);
     s.battlefields.push({
@@ -1005,6 +1013,15 @@ export function applyAction(state: GameState, action: GameAction): GameState {
   if (action.type === "dismiss_combat") {
     s.lastCombat = null;
     launchNextMarch(s);
+    if (
+      s.winner === null &&
+      s.phase === "action" &&
+      !s.showdown &&
+      !s.lastCombat &&
+      movableUnits(s).length
+    ) {
+      log(s, `${player(s).name} still has ready units to march`, s.current);
+    }
     return s;
   }
   if (action.type === "confirm_seat") {

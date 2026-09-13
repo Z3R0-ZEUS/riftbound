@@ -3,6 +3,7 @@ import { stepAi } from "./ai";
 import { setMuted, sfx, unlockAudio } from "./audio";
 import { applyAction, createGame } from "./engine";
 import { LEGENDS } from "./cards";
+import { readMuted, writeMuted } from "./mute";
 import type { GameAction, GameState, Mode, SeatConfig, SetupConfig } from "./types";
 
 export type Screen = "title" | "setup" | "play";
@@ -18,31 +19,12 @@ const LEGEND_IDS = [
   "darius",
 ];
 
-const MUTE_KEY = "riftbound-muted";
-
 function defaultSeats(n: number, allHuman: boolean): SeatConfig[] {
   return Array.from({ length: n }, (_, i) => ({
     name: i === 0 ? "You" : `Player ${i + 1}`,
     kind: allHuman || i === 0 ? ("human" as const) : ("ai" as const),
     legendId: LEGEND_IDS[i % LEGEND_IDS.length]!,
   }));
-}
-
-function readMuted(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    return window.localStorage.getItem(MUTE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeMuted(muted: boolean) {
-  try {
-    window.localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
-  } catch {
-    void 0;
-  }
 }
 
 type GameStore = {
@@ -77,10 +59,15 @@ function playSfx(a: GameAction, prev: GameState | null, next: GameState) {
   if (a.type === "play" || a.type === "play_champion" || a.type === "legend") sfx("play");
   else if (a.type === "move" || a.type === "queue_move" || a.type === "launch_marches") {
     sfx(next.lastCombat && next.lastCombat !== prev?.lastCombat ? "showdown" : "march");
-  } else if (a.type === "pass") sfx(next.showdown || prev?.showdown ? "ui" : "channel");
-  else if (a.type === "invite" || a.type === "confirm_seat" || a.type === "mulligan") sfx("click");
+  }   else if (a.type === "pass") sfx(next.showdown || prev?.showdown ? "ui" : "channel");
+  else if (a.type === "invite") sfx("invite");
+  else if (a.type === "confirm_seat") sfx("ready");
+  else if (a.type === "mulligan" || a.type === "target") sfx("click");
   if (next.winner !== null && prev?.winner === null) sfx("win");
-  else if (prev && next.players.some((p, i) => p.points > (prev.players[i]?.points ?? 0))) sfx("score");
+  else if (next.log[0]?.t.includes("Final point denied")) sfx("deny");
+  else if (prev && next.players.some((p, i) => p.points > (prev.players[i]?.points ?? 0))) {
+    sfx(next.log[0]?.t.includes("holds") ? "hold" : "score");
+  }
   if (next.lastCombat && next.lastCombat !== prev?.lastCombat) sfx("showdown");
 }
 

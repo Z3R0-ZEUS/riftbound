@@ -3,11 +3,13 @@ import { describe, it } from "node:test";
 import { stepAi } from "./ai.ts";
 import {
   applyAction,
+  battlefieldSeats,
   createGame,
   energyOf,
   hideHands,
   legalMoveDests,
   movableUnits,
+  sweptForFinalPoint,
 } from "./engine.ts";
 import type { CardInst, GameState, SeatConfig } from "./types.ts";
 
@@ -213,5 +215,188 @@ describe("AI seats", () => {
       if (before === after) assert.fail(`all-AI froze at ${before}`);
     }
     assert.ok(s.winner !== null, "expected a winner within 500 AI steps");
+  });
+});
+
+const WAR: SeatConfig[] = [
+  { name: "First", kind: "human", legendId: "jinx" },
+  { name: "B", kind: "human", legendId: "garen" },
+  { name: "C", kind: "human", legendId: "ahri" },
+  { name: "D", kind: "human", legendId: "darius" },
+];
+
+describe("War seating", () => {
+  it("uses three battlefields and skips the first seat's field", () => {
+    const s = createGame({ mode: "war", seats: WAR, seed: 2 });
+    assert.equal(s.battlefields.length, 3);
+    assert.deepEqual(
+      s.battlefields.map((b) => b.defId),
+      battlefieldSeats("war", WAR).map((seat) => {
+        const id = seat.legendId;
+        if (id === "garen") return "nexus";
+        if (id === "ahri") return "abyss";
+        if (id === "darius") return "baron";
+        return id;
+      }),
+    );
+    assert.equal(s.battlefields.some((b) => b.defId === "dragon"), false);
+  });
+});
+
+describe("final-point exception", () => {
+  it("lets a hold claim the eighth point immediately", () => {
+    let s = toAction(createGame({ mode: "skirmish", seats: HUMANS, seed: 5 }));
+    const next = (s.current + 1) % s.players.length;
+    s.players[next]!.points = 7;
+    s.battlefields[0]!.controller = next;
+    s.battlefields[0]!.units.push(unit("hold1", next, "vanguard"));
+    s = applyAction(s, { type: "pass" });
+    if (s.phase === "pass_device") s = applyAction(s, { type: "confirm_seat" });
+    assert.equal(s.winner, next);
+    assert.equal(s.players[next]!.points, 8);
+    assert.match(s.log[0]!.t, /holds and claims/);
+  });
+
+  it("denies a lone last-second conquer and does not mark the field scored", () => {
+    let s = toAction(createGame({ mode: "skirmish", seats: HUMANS, seed: 5 }));
+    const p = s.current;
+    s.players[p]!.points = 7;
+    s.players[p]!.base.push(unit("c1", p, "fishbones"));
+    const bf = s.battlefields[0]!.id;
+    assert.equal(sweptForFinalPoint(s, bf), false);
+    const handBefore = s.players[p]!.hand.length;
+    s = applyAction(s, { type: "move", iids: ["c1"], battlefieldId: bf });
+    assert.equal(s.winner, null);
+    assert.equal(s.players[p]!.points, 7);
+    assert.equal(s.scoredThisTurn.includes(bf), false);
+    assert.equal(s.players[p]!.hand.length, handBefore + 1);
+    assert.match(s.log[0]!.t, /Final point denied/);
+  });
+
+  it("allows the eighth point on a conquer after scoring every other field this turn", () => {
+    let s = toAction(createGame({ mode: "skirmish", seats: HUMANS, seed: 5 }));
+    const p = s.current;
+    s.players[p]!.points = 7;
+    s.scoredThisTurn = [s.battlefields[1]!.id, s.battlefields[2]!.id];
+    s.players[p]!.base.push(unit("c1", p, "fishbones"));
+    const bf = s.battlefields[0]!.id;
+    assert.equal(sweptForFinalPoint(s, bf), true);
+    s = applyAction(s, { type: "move", iids: ["c1"], battlefieldId: bf });
+    assert.equal(s.winner, p);
+    assert.equal(s.players[p]!.points, 8);
+    assert.match(s.log[0]!.t, /sweeps the map/);
+  });
+
+  it("uses the same sweep rule in War (3 fields, first seat brings none)", () => {
+    let s = toAction(createGame({ mode: "war", seats: WAR, seed: 6 }));
+    assert.equal(s.battlefields.length, 3);
+    const p = s.current;
+    s.players[p]!.points = 7;
+    s.scoredThisTurn = [s.battlefields[0]!.id, s.battlefields[1]!.id];
+    s.players[p]!.base.push(unit("c1", p, "fishbones"));
+    s = applyAction(s, { type: "move", iids: ["c1"], battlefieldId: s.battlefields[2]!.id });
+    assert.equal(s.winner, p);
+  });
+});
+
+describe("showdown depth", () => {
+  it("keeps the helper window after a targeting Reaction", () => {
+    let s = toAction(createGame({ mode: "skirmish", seats: HUMANS, seed: 7 }));
+    const atk = s.current;
+    const def = (atk + 1) % 3;
+    const help = (atk + 2) % 3;
+    const bf = s.battlefields[0]!;
+    bf.units.push(unit("def1", def, "vanguard"));
+    s.players[atk]!.base.push(unit("atk2", atk, "fishbones"));
+    s.players[atk]!.hand.push({
+      iid: "zap1",
+      defId: "zap",
+      owner: atk,
+      exhausted: false,
+      damage: 0,
+      tempMight: 0,
+    });
+    s.players[atk]!.runes.push({ iid: "r-zap", domain: "fury", exhausted: false });
+    s = applyAction(s, { type: "move", iids: ["atk2"], battlefieldId: bf.id });
+    s = applyAction(s, { type: "invite", playerId: help });
+    s = applyAction(s, { type: "play", iid: "zap1" });
+    assert.equal(s.phase, "targeting");
+    assert.ok(s.showdown);
+    s = applyAction(s, { type: "target", iid: "def1" });
+    assert.ok(s.showdown, "showdown continues after the Reaction");
+    assert.equal(s.showdown!.consecutivePasses, 0);
+    assert.equal(s.current, def);
+    if (s.phase === "pass_device") s = applyAction(s, { type: "confirm_seat" });
+    s = applyAction(s, { type: "pass" });
+    if (s.phase === "pass_device") s = applyAction(s, { type: "confirm_seat" });
+    assert.equal(s.current, help);
+    assert.equal(s.showdown?.participants.includes(help), true);
+    s = applyAction(s, { type: "pass" });
+    if (s.phase === "pass_device") s = applyAction(s, { type: "confirm_seat" });
+    s = applyAction(s, { type: "pass" });
+    assert.equal(s.showdown, null);
+    assert.ok(s.lastCombat);
+  });
+
+  it("lets an AI helper take a window while two humans fight", () => {
+    const seats: SeatConfig[] = [
+      { name: "A", kind: "human", legendId: "jinx" },
+      { name: "B", kind: "human", legendId: "garen" },
+      { name: "AI", kind: "ai", legendId: "ahri" },
+    ];
+    let s = toAction(createGame({ mode: "skirmish", seats, seed: 9 }));
+    const atk = 0;
+    const def = 1;
+    const help = 2;
+    assert.equal(s.current, atk);
+    s.battlefields[0]!.units.push(unit("def1", def, "vanguard"));
+    s.players[atk]!.base.push(unit("atk2", atk, "fishbones"));
+    s = applyAction(s, { type: "move", iids: ["atk2"], battlefieldId: s.battlefields[0]!.id });
+    s = applyAction(s, { type: "invite", playerId: help });
+    s = applyAction(s, { type: "pass" });
+    if (s.phase === "pass_device") s = applyAction(s, { type: "confirm_seat" });
+    s = applyAction(s, { type: "pass" });
+    assert.equal(s.current, help);
+    assert.equal(s.players[help]!.kind, "ai");
+    assert.equal(s.phase, "showdown");
+    const before = windowSig(s);
+    s = stepAi(s);
+    assert.notEqual(windowSig(s), before);
+  });
+
+  it("allows leftover Accelerate and Ganking units to march after a showdown", () => {
+    let s = toAction(createGame({ mode: "skirmish", seats: HUMANS, seed: 12 }));
+    const atk = s.current;
+    const def = (atk + 1) % 3;
+    s.battlefields[0]!.units.push(unit("def1", def, "vanguard"));
+    s.players[atk]!.base.push(unit("atk2", atk, "fishbones"));
+    s.players[atk]!.base.push({
+      iid: "acc1",
+      defId: "powpow",
+      owner: atk,
+      exhausted: false,
+      damage: 0,
+      tempMight: 0,
+    });
+    s.battlefields[2]!.units.push({
+      iid: "gank1",
+      defId: "rocket-girl",
+      owner: atk,
+      exhausted: false,
+      damage: 0,
+      tempMight: 0,
+    });
+    s = applyAction(s, { type: "move", iids: ["atk2"], battlefieldId: s.battlefields[0]!.id });
+    s = applyAction(s, { type: "pass" });
+    if (s.phase === "pass_device") s = applyAction(s, { type: "confirm_seat" });
+    s = applyAction(s, { type: "pass" });
+    assert.ok(s.lastCombat);
+    s = applyAction(s, { type: "dismiss_combat" });
+    assert.equal(s.phase, "action");
+    assert.equal(s.current, atk);
+    const leftover = movableUnits(s).map((u) => u.iid).sort();
+    assert.deepEqual(leftover, ["acc1", "gank1"]);
+    s = applyAction(s, { type: "queue_move", iids: ["acc1"], battlefieldId: s.battlefields[1]!.id });
+    assert.ok(s.battlefields[1]!.units.some((u) => u.iid === "acc1") || s.marchQueue.some((m) => m.iids.includes("acc1")));
   });
 });
