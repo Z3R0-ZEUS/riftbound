@@ -168,7 +168,7 @@ export function CardView({
       )}
       <span className="tcg-nameplate">
         <span className="flex items-center justify-between gap-1">
-          <span className="font-display text-xs leading-tight text-fg">{d.name}</span>
+          <span className="font-display text-xs leading-tight tracking-wide text-fg">{d.name}</span>
           <DomainPips domains={d.domains} />
         </span>
         {showKeys && (
@@ -215,9 +215,9 @@ export function CardSheet({ defId }: { defId: string }) {
       <div className="mx-auto w-44 shrink-0 pointer-events-none">
         <CardView defId={d.id} size="lg" />
       </div>
-      <div className="inspect-sheet min-w-0 flex-1 rounded-xl border border-line-strong bg-surface p-4">
-        <p className="text-xs font-semibold tracking-wide text-accent uppercase">{kindLabel(d.kind)}</p>
-        <h3 className="font-display mt-1 text-2xl text-fg">{d.name}</h3>
+      <div className="inspect-sheet min-w-0 flex-1 rounded-xl p-4">
+        <p className="kicker">{kindLabel(d.kind)}</p>
+        <h3 className="font-display mt-1 text-2xl tracking-wide text-fg">{d.name}</h3>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <DomainPips domains={d.domains} />
           {d.domains.map((dom) => (

@@ -99,8 +99,9 @@ export function GameTable() {
 
   if (passing && !mulliganReveal) {
     return (
-      <div className="relative flex min-h-dvh flex-col bg-bg text-fg">
-        <header className="relative z-[81] flex items-center justify-between gap-3 px-3 py-2 sm:px-5">
+      <div className="table-shell screen-enter">
+        <div className="vignette" />
+        <header className="metal-rail relative z-[81] flex items-center justify-between gap-3 px-3 py-2 sm:px-5">
           <span className="font-display text-lg tracking-wide">Riftbound</span>
           <MuteToggle />
         </header>
@@ -111,8 +112,9 @@ export function GameTable() {
 
   return (
     <CardPeek.Provider value={{ peek: setPeekId, inspect: setInspect }}>
-    <div className="flex min-h-dvh flex-col bg-bg text-fg">
-      <header className="flex items-center justify-between gap-3 border-b border-line px-3 py-2 sm:px-5">
+    <div className="table-shell screen-enter flex flex-col">
+      <div className="vignette" />
+      <header className="metal-rail flex items-center justify-between gap-3 px-3 py-2 sm:px-5">
         <div className="flex items-center gap-3">
           <span className="font-display text-lg tracking-wide">Riftbound</span>
           <span className="hidden text-xs text-muted sm:inline">
@@ -124,8 +126,8 @@ export function GameTable() {
             <span
               key={p.id}
               className={cn(
-                "rounded-full px-2.5 py-1 text-xs tabular",
-                p.id === state.current ? "bg-fg text-bg" : "bg-raised text-muted",
+                "score-token tabular",
+                p.id === state.current && "is-current",
                 pulses.includes(p.id) && "score-pulse",
               )}
             >
@@ -135,22 +137,22 @@ export function GameTable() {
         </div>
         <div className="flex items-center gap-1">
           <MuteToggle />
-          <button type="button" className="grid size-10 place-items-center rounded-lg text-muted hover:text-fg" onClick={() => setRules(true)} aria-label="Rules">
+          <button type="button" className="metal-token grid size-10 place-items-center rounded-full text-muted hover:text-fg" onClick={() => setRules(true)} aria-label="Rules">
             <BookOpen className="size-4" />
           </button>
-          <button type="button" className="grid size-10 place-items-center rounded-lg text-muted hover:text-fg" onClick={toTitle} aria-label="Leave table">
+          <button type="button" className="metal-token grid size-10 place-items-center rounded-full text-muted hover:text-fg" onClick={toTitle} aria-label="Leave table">
             <RotateCcw className="size-4" />
           </button>
         </div>
       </header>
 
-      <div className="flex gap-2 overflow-x-auto px-3 py-2 sm:px-5">
+      <div className="relative z-[3] flex gap-2 overflow-x-auto px-3 py-2 sm:px-5">
         {others.map((p) => (
           <OpponentRail key={p.id} p={p} active={p.id === state.current} pulsed={pulses.includes(p.id)} />
         ))}
       </div>
 
-      <div className="grid flex-1 grid-cols-1 gap-3 px-3 py-2 sm:grid-cols-3 sm:px-5">
+      <div className="table-well grid flex-1 grid-cols-1 gap-3 px-3 py-2 sm:grid-cols-3 sm:px-5">
         {state.battlefields.map((bf) => {
           const bdef = getDef(bf.defId);
           const drop = dests.includes(bf.id);
@@ -166,7 +168,7 @@ export function GameTable() {
             <section
               key={bf.id}
               className={cn(
-                "bf-panel relative min-h-44 overflow-hidden rounded-2xl border border-line bg-surface",
+                "bf-panel relative min-h-44 overflow-hidden rounded-2xl",
                 (drop || targetBf || showdownHere) && "bf-glow",
                 incomingCount > 0 && "bf-march",
                 justScored && "conquer-flash",
@@ -198,7 +200,7 @@ export function GameTable() {
                     </p>
                   </div>
                   {incomingCount > 0 && (
-                    <span className="rounded-full bg-accent px-2 py-1 text-xs font-medium text-accent-fg">
+                    <span className="plaque-btn rounded-full px-2 py-1 text-xs font-semibold">
                       {incomingCount} marching
                     </span>
                   )}
@@ -226,7 +228,7 @@ export function GameTable() {
                 {(drop || targetBf) && me.kind === "human" && myTurn && (
                   <button
                     type="button"
-                    className="mt-2 h-10 rounded-lg bg-fg text-sm font-medium text-bg"
+                    className="plaque-btn mt-2 h-10 rounded-full text-sm font-semibold"
                     onClick={() => {
                       if (targetBf) dispatch({ type: "target", battlefieldId: bf.id });
                       else dispatch({ type: "queue_move", iids: selected, battlefieldId: bf.id });
@@ -273,7 +275,7 @@ export function GameTable() {
         <ShowdownBar state={state} />
       )}
       {state.phase === "targeting" && acting.kind === "human" && !frozen && (
-        <div className="border-t border-line bg-raised px-4 py-2 text-center text-sm text-accent">
+        <div className="wood-rail px-4 py-2 text-center text-sm text-accent">
           Choose a target
           <button type="button" className="ml-3 text-muted underline" onClick={() => dispatch({ type: "cancel" })}>
             Cancel
@@ -282,7 +284,7 @@ export function GameTable() {
       )}
 
       {(aiBusy || acting.kind === "ai") && state.phase !== "pass_device" && state.winner === null && (
-        <div className="border-t border-line bg-raised px-4 py-2 text-center text-sm text-muted">
+        <div className="wood-rail px-4 py-2 text-center text-sm text-muted">
           {acting.name} is acting… the table is locked.
         </div>
       )}
@@ -301,7 +303,7 @@ export function GameTable() {
         </aside>
       )}
       {selected.length > 0 && me.kind === "human" && myTurn && (
-        <button type="button" className="fixed right-4 bottom-28 z-20 h-10 rounded-full bg-raised px-4 text-xs text-muted" onClick={clearSelect}>
+        <button type="button" className="metal-token fixed right-4 bottom-28 z-20 h-10 rounded-full px-4 text-xs text-muted" onClick={clearSelect}>
           Clear selection ({selected.length})
         </button>
       )}
@@ -314,7 +316,7 @@ function OpponentRail({ p, active, pulsed }: { p: PlayerState; active: boolean; 
   const legend = getLegend(p.legendId);
   const peek = useContext(CardPeek);
   return (
-    <div className={cn("flex min-w-52 items-center gap-3 rounded-xl border bg-surface px-3 py-2", active ? "border-accent" : "border-line")}>
+    <div className={cn("opp-plaque flex items-center gap-3 rounded-xl px-3 py-2", active && "is-active")}>
       <button
         type="button"
         className="shrink-0"
@@ -323,7 +325,7 @@ function OpponentRail({ p, active, pulsed }: { p: PlayerState; active: boolean; 
         onClick={() => peek.inspect(`legend-${p.legendId}`)}
         aria-label={legend.name}
       >
-        <img src={legend.art} alt="" crossOrigin="anonymous" className="size-12 rounded-lg object-cover" />
+        <img src={legend.art} alt="" crossOrigin="anonymous" className="legend-plaque size-12 rounded-lg object-cover" />
       </button>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -366,7 +368,7 @@ function CurrentRow({
   const gear = me.base.filter((c) => getDef(c.defId).kind === "gear");
   const flashes = useRuneFlashes(me.runes);
   return (
-    <div className="border-t border-line bg-surface/80 px-3 py-3 sm:px-5">
+    <div className="wood-rail px-3 py-3 sm:px-5">
       <div className="flex flex-wrap items-end gap-3">
         <button
           type="button"
@@ -376,7 +378,7 @@ function CurrentRow({
           onMouseLeave={() => peek.peek(null)}
           aria-label={`${legend.name}. ${legend.abilityText}`}
         >
-          <img src={legend.art} alt="" crossOrigin="anonymous" className="aspect-[2/3] w-full rounded-xl object-cover" />
+          <img src={legend.art} alt="" crossOrigin="anonymous" className="legend-plaque aspect-[2/3] w-full rounded-xl object-cover" />
           <span className="absolute inset-x-0 bottom-0 rounded-b-xl bg-bg/80 px-1 py-1 text-center font-display text-xs">{legend.name}</span>
         </button>
         {me.champion && (
@@ -446,7 +448,7 @@ function CurrentRow({
           <button
             type="button"
             disabled={hideHand || !myTurn || me.legendUsed || state.phase !== "action"}
-            className="h-11 rounded-xl border border-line bg-raised px-4 text-sm font-medium text-fg disabled:opacity-40"
+            className="ghost-plaque h-11 rounded-full px-4 text-sm font-medium disabled:opacity-40"
             onClick={() => dispatch({ type: "legend" })}
           >
             Legend
@@ -458,7 +460,7 @@ function CurrentRow({
               !myTurn ||
               (state.phase !== "showdown" && (state.phase !== "action" || state.marchQueue.length > 0))
             }
-            className="h-11 rounded-xl bg-fg px-4 text-sm font-medium text-bg disabled:opacity-40"
+            className="plaque-btn h-11 rounded-full px-4 text-sm font-semibold disabled:opacity-40"
             onClick={() => dispatch({ type: "pass" })}
           >
             {state.phase === "showdown" ? "Pass showdown" : "Pass turn"}
@@ -486,7 +488,7 @@ function HandBar({
 }) {
   const dispatch = useGame((s) => s.dispatch);
   return (
-    <div className="border-t border-line bg-bg px-2 py-3 sm:px-5">
+    <div className="felt-strip px-2 py-3 sm:px-5">
       <p className="mb-2 text-center text-xs text-subtle">
         {hideHand
           ? "Hands are face-down until this seat is ready."
@@ -526,8 +528,8 @@ function MulliganRevealOverlay() {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
       <div className="scrim absolute inset-0" />
-      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-line-strong bg-surface p-5 pop">
-        <p className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">Drew into</p>
+      <div className="parchment-panel relative z-10 w-full max-w-2xl rounded-2xl p-5 pop">
+        <p className="kicker">Drew into</p>
         <h2 className="font-display mt-1 text-2xl">
           {reveal.defIds.length === 1 ? "Replacement card" : `${reveal.defIds.length} replacement cards`}
         </h2>
@@ -545,7 +547,7 @@ function MulliganRevealOverlay() {
         </div>
         <button
           type="button"
-          className="mt-5 h-12 w-full rounded-xl bg-fg text-sm font-medium text-bg"
+          className="plaque-btn mt-5 h-12 w-full rounded-full text-sm font-semibold"
           onClick={() => {
             setInspect(null);
             clear();
@@ -567,8 +569,8 @@ function MulliganOverlay() {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <div className="scrim absolute inset-0" />
-      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-line bg-surface p-5 pop">
-        <h2 className="font-display text-2xl">{me.name} — Mulligan</h2>
+      <div className="parchment-panel relative z-10 w-full max-w-2xl rounded-2xl p-5 pop">
+        <h2 className="font-display text-2xl tracking-wide">{me.name} — Mulligan</h2>
         <p className="mt-1 text-sm text-muted">Bottom up to two cards, then draw replacements. The deck is not shuffled.</p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           {me.hand.map((c) => (
@@ -586,7 +588,7 @@ function MulliganOverlay() {
         </div>
         <button
           type="button"
-          className="mt-5 h-12 w-full rounded-xl bg-fg text-sm font-medium text-bg"
+          className="plaque-btn mt-5 h-12 w-full rounded-full text-sm font-semibold"
           onClick={() => dispatch({ type: "mulligan", iids: selected.slice(0, 2) })}
         >
           Keep {me.hand.length - Math.min(2, selected.length)}
@@ -605,8 +607,8 @@ function PassOverlay() {
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
       <img src={legend.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-20 blur-md" />
       <div className="scrim absolute inset-0" />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-line bg-bg/95 p-6 text-center pop sm:p-8">
-        <p className="text-xs tracking-[0.25em] text-accent uppercase">Pass the device</p>
+      <div className="parchment-panel relative z-10 w-full max-w-md rounded-2xl p-6 text-center pop sm:p-8">
+        <p className="kicker">Pass the device</p>
         <h2 className="font-display mt-3 text-4xl">{me.name}</h2>
         <p className="mt-2 text-sm text-muted">
           {legend.name}, {legend.title}. Every hand is face-down until you confirm.
@@ -614,7 +616,7 @@ function PassOverlay() {
         <FanNote className="mx-auto mt-4 max-w-sm pt-3 text-left" />
         <button
           type="button"
-          className="mt-6 h-12 w-full rounded-xl bg-fg text-sm font-medium text-bg"
+          className="plaque-btn mt-6 h-12 w-full rounded-full text-sm font-semibold"
           onClick={() => dispatch({ type: "confirm_seat" })}
         >
           I'm ready — show my hand
@@ -630,7 +632,7 @@ function MarchBar({ state, selected, ready }: { state: GameState; selected: numb
     if (ready <= 0) return null;
     const leftover = state.log[0]?.t.includes("still has ready units");
     return (
-      <div className="border-t border-line bg-raised px-4 py-2 text-center text-xs text-muted">
+      <div className="wood-rail px-4 py-2 text-center text-xs text-muted">
         {leftover
           ? `${ready} still ready after the showdown — Accelerate and Ganking units can still march.`
           : `${ready} units ready. Select several and send them together, or split them across battlefields.`}
@@ -639,7 +641,7 @@ function MarchBar({ state, selected, ready }: { state: GameState; selected: numb
   }
   if (!state.marchQueue.length) {
     return (
-      <div className="border-t border-line bg-raised px-4 py-2 text-center text-xs text-muted">
+      <div className="wood-rail px-4 py-2 text-center text-xs text-muted">
         {selected} selected. Tap a battlefield to send this raid.
       </div>
     );
@@ -649,7 +651,7 @@ function MarchBar({ state, selected, ready }: { state: GameState; selected: numb
     return `${m.iids.length} → ${bf ? getDef(bf.defId).name : "field"}`;
   });
   return (
-    <div className="border-t border-line bg-raised px-4 py-3">
+    <div className="wood-rail px-4 py-3">
       <p className="text-center text-sm text-accent">Marches planned: {parts.join(" · ")}</p>
       <p className="mt-1 text-center text-xs text-muted">
         {ready ? `${ready} still ready to assign. ` : ""}Showdowns will resolve in this order.
@@ -657,14 +659,14 @@ function MarchBar({ state, selected, ready }: { state: GameState; selected: numb
       <div className="mt-2 flex justify-center gap-2">
         <button
           type="button"
-          className="h-10 rounded-xl bg-fg px-4 text-sm font-medium text-bg"
+          className="plaque-btn h-10 rounded-full px-4 text-sm font-semibold"
           onClick={() => dispatch({ type: "launch_marches" })}
         >
           Start battles
         </button>
         <button
           type="button"
-          className="h-10 rounded-xl border border-line px-4 text-sm text-muted"
+          className="ghost-plaque h-10 rounded-full px-4 text-sm text-muted"
           onClick={() => dispatch({ type: "cancel_marches" })}
         >
           Cancel plans
@@ -685,7 +687,7 @@ function ShowdownBar({ state }: { state: GameState }) {
   const guests = state.players.filter((p) => !sd.participants.includes(p.id));
   const canInvite = state.current === sd.attacker || state.current === sd.defender;
   return (
-    <div className="border-t border-line bg-raised px-4 py-3">
+    <div className="wood-rail px-4 py-3">
       <p className="text-center text-sm text-accent">
         Showdown at {bf ? getDef(bf.defId).name : "the field"} — {state.players[sd.attacker]?.name} {atkMight} vs{" "}
         {state.players[sd.defender]?.name} {defMight}
@@ -699,7 +701,7 @@ function ShowdownBar({ state }: { state: GameState }) {
             <button
               key={p.id}
               type="button"
-              className="h-9 rounded-full border border-line bg-surface px-3 text-xs font-medium text-fg"
+              className="metal-token h-9 rounded-full px-3 text-xs font-medium text-fg"
               onClick={() => dispatch({ type: "invite", playerId: p.id })}
             >
               Ask {p.name} for help
@@ -718,7 +720,7 @@ function CombatOverlay() {
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <button type="button" className="scrim absolute inset-0" onClick={() => dispatch({ type: "dismiss_combat" })} />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-line bg-surface p-6 pop">
+      <div className="parchment-panel relative z-10 w-full max-w-md rounded-2xl p-6 pop">
         <div className="vfx-impact rounded-xl" />
         <h2 className="font-display text-2xl">Showdown</h2>
         <p className="mt-2 tabular text-sm text-muted">
@@ -731,7 +733,7 @@ function CombatOverlay() {
         </ul>
         <button
           type="button"
-          className="mt-5 h-11 w-full rounded-xl bg-fg text-sm font-medium text-bg"
+          className="plaque-btn mt-5 h-11 w-full rounded-full text-sm font-semibold"
           onClick={() => dispatch({ type: "dismiss_combat" })}
         >
           {state.marchQueue.length ? "Next battlefield" : "Continue"}
@@ -751,7 +753,7 @@ function WinnerOverlay() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <img src={legend.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-45" />
       <div className="scrim absolute inset-0" />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-line bg-bg/90 p-8 text-center pop">
+      <div className="parchment-panel relative z-10 w-full max-w-md rounded-2xl p-8 text-center pop">
         <Crown className="mx-auto size-8 text-win" />
         <h2 className="font-display mt-3 text-4xl">{w.name} wins</h2>
         <p className="mt-2 text-sm text-muted">
@@ -766,10 +768,10 @@ function WinnerOverlay() {
         </ul>
         <FanNote className="mx-auto mt-4 max-w-sm pt-3 text-left" />
         <div className="mt-6 flex gap-2">
-          <button type="button" className="h-11 flex-1 rounded-xl bg-fg text-sm font-medium text-bg" onClick={start}>
+          <button type="button" className="plaque-btn h-11 flex-1 rounded-full text-sm font-semibold" onClick={start}>
             Rematch
           </button>
-          <button type="button" className="h-11 flex-1 rounded-xl border border-line text-sm" onClick={toTitle}>
+          <button type="button" className="ghost-plaque h-11 flex-1 rounded-full text-sm" onClick={toTitle}>
             Title
           </button>
         </div>
@@ -786,7 +788,7 @@ function InspectCard({ defId, onClose }: { defId: string; onClose: () => void })
         <CardSheet defId={defId} />
         <button
           type="button"
-          className="mt-3 h-11 w-full rounded-xl bg-fg text-sm font-medium text-bg"
+          className="plaque-btn mt-3 h-11 w-full rounded-full text-sm font-semibold"
           onClick={onClose}
         >
           Close

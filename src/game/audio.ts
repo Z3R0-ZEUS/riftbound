@@ -100,11 +100,12 @@ class SoundManager {
     switch (kind) {
       case "click":
       case "ui":
-        tone(c, 620, 0.045, "triangle", 0.028);
+        tone(c, 780, 0.028, "sine", 0.012);
         break;
       case "play":
-        tone(c, 280, 0.11, "square", 0.035);
-        tone(c, 420, 0.09, "triangle", 0.028, 0.035);
+        noiseBurst(c, 0.035, 0.016);
+        tone(c, 240, 0.1, "triangle", 0.028);
+        tone(c, 380, 0.08, "sine", 0.016, 0.03);
         break;
       case "channel":
         tone(c, 220, 0.08, "sine", 0.036);
@@ -118,13 +119,15 @@ class SoundManager {
         break;
       case "combat":
       case "showdown":
-        noiseBurst(c, 0.12, 0.05);
-        tone(c, 86, 0.16, "square", 0.05);
-        tone(c, 140, 0.11, "sawtooth", 0.032, 0.04);
+        noiseBurst(c, 0.2, 0.09);
+        tone(c, 62, 0.24, "square", 0.072);
+        tone(c, 104, 0.18, "sawtooth", 0.048, 0.03);
+        tone(c, 48, 0.22, "sine", 0.055, 0.01);
         break;
       case "score":
-        tone(c, 440, 0.09, "triangle", 0.045);
-        tone(c, 660, 0.13, "triangle", 0.036, 0.07);
+        tone(c, 392, 0.11, "triangle", 0.058);
+        tone(c, 523, 0.15, "triangle", 0.05, 0.06);
+        tone(c, 784, 0.2, "sine", 0.042, 0.12);
         break;
       case "hold":
         tone(c, 392, 0.1, "sine", 0.04);
@@ -154,8 +157,8 @@ class SoundManager {
         tone(c, 540, 0.09, "sine", 0.02, 0.12);
         break;
       case "reveal":
-        tone(c, 660, 0.07, "triangle", 0.03);
-        tone(c, 880, 0.09, "sine", 0.022, 0.05);
+        tone(c, 620, 0.055, "sine", 0.016);
+        tone(c, 780, 0.075, "triangle", 0.012, 0.04);
         break;
       default:
         break;
