@@ -16,6 +16,7 @@ Opens on port 8080.
 - **Skirmish** — 3 seats, 3 battlefields  
 - **War** — 4 seats  
 - Mix humans and AI. Hands stay hidden until you pass the device.
+- Sound is procedural Web Audio (mute from the title, setup, or table). Nothing here is ripped from Riot.
 
 ## How a turn works
 

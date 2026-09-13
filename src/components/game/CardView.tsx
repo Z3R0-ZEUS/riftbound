@@ -107,6 +107,7 @@ export function CardView({
   const keys = keywordList(d);
   const showText = size === "md" || size === "lg";
   const showKeys = size !== "xs";
+  const domain = d.domains[0];
 
   return (
     <button
@@ -119,6 +120,7 @@ export function CardView({
         dim && "is-dim",
         inst?.exhausted && "is-exhausted",
       )}
+      style={domain ? { ["--card-domain" as string]: `var(--domain-${domain})` } : undefined}
       onClick={() => {
         if (held.current) {
           held.current = false;
@@ -146,13 +148,19 @@ export function CardView({
     >
       <img src={d.art} alt="" crossOrigin="anonymous" />
       {d.kind !== "battlefield" && d.kind !== "legend" && (
-        <span className="absolute top-1 left-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-bg/90 px-1.5 text-xs font-semibold text-fg tabular">
+        <span
+          className="absolute top-1 left-1 z-10 flex h-6 min-w-6 items-center justify-center rounded-full border border-line-strong bg-bg/92 px-1.5 text-xs font-semibold text-fg tabular"
+          title={d.power > 0 ? `Energy ${d.energy}, Power ${d.power}` : `Energy ${d.energy}`}
+        >
           {d.energy}
           {d.power > 0 ? `/${d.power}` : ""}
         </span>
       )}
       {typeof might === "number" && d.kind === "unit" && (
-        <span className="absolute top-1 right-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-win px-1.5 text-xs font-semibold text-accent-fg tabular">
+        <span
+          className="absolute top-1 right-1 z-10 flex h-6 min-w-6 items-center justify-center rounded-full border border-black/30 bg-win px-1.5 text-xs font-semibold text-accent-fg tabular shadow-sm"
+          title={`Might ${might}`}
+        >
           {might}
         </span>
       )}
