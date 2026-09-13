@@ -69,6 +69,8 @@ export function GameTable() {
   const clearSelect = useGame((s) => s.clearSelect);
   const setInspect = useGame((s) => s.setInspect);
   const inspect = useGame((s) => s.inspect);
+  const mulliganReveal = useGame((s) => s.mulliganReveal);
+  const justDrawn = useGame((s) => s.justDrawn);
   const aiBusy = useGame((s) => s.aiBusy);
   const setRules = useGame((s) => s.setRules);
   const toTitle = useGame((s) => s.toTitle);
@@ -95,7 +97,7 @@ export function GameTable() {
   const movable = new Set(myTurn ? movableUnits(state).map((u) => u.iid) : []);
   const targets = state.targeting && !frozen ? legalTargets(state, state.targeting.effect, state.current) : null;
 
-  if (passing) {
+  if (passing && !mulliganReveal) {
     return (
       <div className="relative flex min-h-dvh flex-col bg-bg text-fg">
         <header className="relative z-[81] flex items-center justify-between gap-3 px-3 py-2 sm:px-5">
@@ -261,6 +263,7 @@ export function GameTable() {
         hideHand={hideHand}
         myTurn={myTurn}
         onInspect={setInspect}
+        drawn={justDrawn}
       />
 
       {state.phase === "action" && acting.kind === "human" && myTurn && (
@@ -284,13 +287,14 @@ export function GameTable() {
         </div>
       )}
 
-      {state.phase === "mulligan" && acting.kind === "human" && (
+      {state.phase === "mulligan" && acting.kind === "human" && !mulliganReveal && (
         <MulliganOverlay />
       )}
-      {passing && <PassOverlay />}
+      {mulliganReveal && <MulliganRevealOverlay />}
+      {passing && !mulliganReveal && <PassOverlay />}
       {state.lastCombat && <CombatOverlay />}
       {state.winner !== null && <WinnerOverlay />}
-      {inspect && !passing && <InspectCard defId={inspect} onClose={() => setInspect(null)} />}
+      {inspect && <InspectCard defId={inspect} onClose={() => setInspect(null)} />}
       {peekId && !inspect && !passing && (
         <aside className="pointer-events-none fixed top-16 left-3 z-50 hidden w-[22rem] md:block">
           <CardSheet defId={peekId} />
@@ -471,12 +475,14 @@ function HandBar({
   hideHand,
   myTurn,
   onInspect,
+  drawn,
 }: {
   state: GameState;
   me: PlayerState;
   hideHand: boolean;
   myTurn: boolean;
   onInspect: (id: string | null) => void;
+  drawn: string[];
 }) {
   const dispatch = useGame((s) => s.dispatch);
   return (
@@ -484,7 +490,7 @@ function HandBar({
       <p className="mb-2 text-center text-xs text-subtle">
         {hideHand
           ? "Hands are face-down until this seat is ready."
-          : "Hover a card to read it. Hold or right-click to pin. Top-left is Energy, gold is Might."}
+          : "Hover a card to read it. Hold or right-click to pin. E is Energy, P is Power, gold M is Might."}
       </p>
       <div className="flex items-end justify-center gap-1 overflow-x-auto pb-1 sm:gap-2">
         {me.hand.map((c) => {
@@ -496,6 +502,7 @@ function HandBar({
               size="md"
               hidden={hideHand}
               playable={playable}
+              drawn={drawn.includes(c.iid)}
               dim={!hideHand && !playable && state.phase === "action"}
               onClick={() => {
                 if (hideHand || !myTurn) return;
@@ -506,6 +513,46 @@ function HandBar({
             />
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function MulliganRevealOverlay() {
+  const reveal = useGame((s) => s.mulliganReveal);
+  const clear = useGame((s) => s.clearMulliganReveal);
+  const setInspect = useGame((s) => s.setInspect);
+  if (!reveal) return null;
+  return (
+    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+      <div className="scrim absolute inset-0" />
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-line-strong bg-surface p-5 pop">
+        <p className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">Drew into</p>
+        <h2 className="font-display mt-1 text-2xl">
+          {reveal.defIds.length === 1 ? "Replacement card" : `${reveal.defIds.length} replacement cards`}
+        </h2>
+        <p className="mt-1 text-sm text-muted">Face-up so you can read what came off the deck. These are in your hand.</p>
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
+          {reveal.defIds.map((id, i) => (
+            <CardView
+              key={`${id}-${i}`}
+              defId={id}
+              size="md"
+              drawn
+              onClick={() => setInspect(id)}
+            />
+          ))}
+        </div>
+        <button
+          type="button"
+          className="mt-5 h-12 w-full rounded-xl bg-fg text-sm font-medium text-bg"
+          onClick={() => {
+            setInspect(null);
+            clear();
+          }}
+        >
+          Got it
+        </button>
       </div>
     </div>
   );
@@ -733,7 +780,7 @@ function WinnerOverlay() {
 
 function InspectCard({ defId, onClose }: { defId: string; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center">
+    <div className="fixed inset-0 z-[95] flex items-end justify-center p-4 sm:items-center">
       <button type="button" className="scrim absolute inset-0" onClick={onClose} aria-label="Close card" />
       <div className="relative z-10 w-full max-w-lg pop">
         <CardSheet defId={defId} />

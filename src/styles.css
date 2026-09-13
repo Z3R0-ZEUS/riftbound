@@ -138,7 +138,130 @@
   right: 0;
   bottom: 0;
   padding: 28px 6px 6px;
-  background: linear-gradient(transparent, rgb(7 8 11 / 0.96) 40%);
+  background: linear-gradient(transparent, rgb(7 8 11 / 0.98) 32%);
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgb(0 0 0 / 0.45);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
+}
+
+.stat-badge-label {
+  opacity: 0.85;
+  letter-spacing: 0.04em;
+}
+
+.stat-badge.is-energy {
+  background: #0b2a36;
+  color: #c6eef8;
+  border-color: #8fb8c4;
+}
+
+.stat-badge.is-power {
+  background: #2a1840;
+  color: #e4d2ff;
+  border-color: #7b4bb8;
+}
+
+.stat-badge.is-might {
+  background: #c9b48a;
+  color: #1a1408;
+  border-color: #8a7548;
+}
+
+.stat-box dt {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.stat-box.is-energy {
+  background: #0b2a36;
+  color: #c6eef8;
+  box-shadow: inset 0 0 0 1px #8fb8c4;
+}
+
+.stat-box.is-power {
+  background: #2a1840;
+  color: #e4d2ff;
+  box-shadow: inset 0 0 0 1px #7b4bb8;
+}
+
+.stat-box.is-might {
+  background: #3a3018;
+  color: #f3e6c4;
+  box-shadow: inset 0 0 0 1px #c9b48a;
+}
+
+.stat-box.is-empty {
+  background: var(--color-raised);
+  color: var(--color-subtle);
+}
+
+.keyword-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.05rem 0.35rem;
+  background: rgb(201 180 138 / 0.18);
+  color: #f3e6c4;
+  border: 1px solid rgb(201 180 138 / 0.55);
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.keyword-chip.is-kind {
+  background: rgb(143 184 196 / 0.2);
+  color: #d5eef4;
+  border-color: rgb(143 184 196 / 0.55);
+}
+
+.keyword-chip.is-lg {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.card-ability {
+  color: #f4f2ea;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.85);
+}
+
+.ability-panel {
+  background: rgb(7 8 11 / 0.55);
+  border: 1px solid var(--color-line-strong);
+}
+
+.inspect-sheet {
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.4);
+}
+
+.tcg-card.is-drawn {
+  box-shadow:
+    0 0 0 2px #c6eef8,
+    0 0 18px rgb(143 184 196 / 0.45);
+}
+
+.pack-credits {
+  border-top: 1px solid var(--color-line);
+  padding-top: 1rem;
+}
+
+.pack-credit-art {
+  width: 3.25rem;
+  height: 2rem;
+  object-fit: cover;
+  border-radius: 0.3rem;
+  border: 1px solid var(--color-line);
+  background: #05060a;
 }
 
 .pip {

@@ -1,54 +1,26 @@
 import { create } from "zustand";
 import { stepAi } from "./ai";
 import { setMuted, sfx, unlockAudio } from "./audio";
-import {
-  emptyCollection,
-  isLegendUnlocked,
-  openProduct,
-  readCollection,
-  STARTER_LEGENDS,
-  unlockedLegendIds,
-  writeCollection,
-  type CollectionState,
-  type OpenResult,
-  type ProductId,
-} from "./collection";
-import { applyAction, createGame } from "./engine";
 import { LEGENDS } from "./cards";
+import { applyAction, createGame, drawnAfterMulligan } from "./engine";
 import { readMuted, writeMuted } from "./mute";
 import type { GameAction, GameState, Mode, SeatConfig, SetupConfig } from "./types";
 
-export type Screen = "title" | "shop" | "setup" | "play";
+export type Screen = "title" | "setup" | "play";
 
-function legendPool(collection: CollectionState): string[] {
-  const ids = unlockedLegendIds(collection);
-  return ids.length ? ids : [...STARTER_LEGENDS];
-}
+export type MulliganReveal = {
+  defIds: string[];
+  iids: string[];
+};
 
-function defaultSeats(
-  n: number,
-  allHuman: boolean,
-  unlocked: readonly string[] = STARTER_LEGENDS,
-): SeatConfig[] {
-  const pool = unlocked.length ? unlocked : STARTER_LEGENDS;
+const LEGEND_IDS = LEGENDS.map((l) => l.id);
+
+function defaultSeats(n: number, allHuman: boolean): SeatConfig[] {
   return Array.from({ length: n }, (_, i) => ({
     name: i === 0 ? "You" : `Player ${i + 1}`,
     kind: allHuman || i === 0 ? ("human" as const) : ("ai" as const),
-    legendId: pool[i % pool.length]!,
+    legendId: LEGEND_IDS[i % LEGEND_IDS.length]!,
   }));
-}
-
-function remapSeats(seats: SeatConfig[], unlocked: readonly string[]): SeatConfig[] {
-  const pool = unlocked.length ? unlocked : STARTER_LEGENDS;
-  const used = new Set<string>();
-  return seats.map((seat, i) => {
-    let legendId = pool.includes(seat.legendId) ? seat.legendId : pool[i % pool.length]!;
-    if (used.has(legendId)) {
-      legendId = pool.find((id) => !used.has(id)) ?? legendId;
-    }
-    used.add(legendId);
-    return { ...seat, legendId };
-  });
 }
 
 type GameStore = {
@@ -60,8 +32,8 @@ type GameStore = {
   rules: boolean;
   aiBusy: boolean;
   muted: boolean;
-  collection: CollectionState;
-  lastOpen: (OpenResult & { productId: ProductId }) | null;
+  mulliganReveal: MulliganReveal | null;
+  justDrawn: string[];
   setScreen: (s: Screen) => void;
   setMode: (m: Mode) => void;
   setSeatCount: (n: 3 | 4) => void;
@@ -76,9 +48,7 @@ type GameStore = {
   setRules: (v: boolean) => void;
   toggleMute: () => void;
   hydrateMute: () => void;
-  hydrateCollection: () => void;
-  buyProduct: (id: ProductId) => void;
-  clearLastOpen: () => void;
+  clearMulliganReveal: () => void;
   toTitle: () => void;
 };
 
@@ -88,7 +58,7 @@ function playSfx(a: GameAction, prev: GameState | null, next: GameState) {
   if (a.type === "play" || a.type === "play_champion" || a.type === "legend") sfx("play");
   else if (a.type === "move" || a.type === "queue_move" || a.type === "launch_marches") {
     sfx(next.lastCombat && next.lastCombat !== prev?.lastCombat ? "showdown" : "march");
-  }   else if (a.type === "pass") sfx(next.showdown || prev?.showdown ? "ui" : "channel");
+  } else if (a.type === "pass") sfx(next.showdown || prev?.showdown ? "ui" : "channel");
   else if (a.type === "invite") sfx("invite");
   else if (a.type === "confirm_seat") sfx("ready");
   else if (a.type === "mulligan" || a.type === "target") sfx("click");
@@ -155,8 +125,8 @@ export const useGame = create<GameStore>((set, get) => ({
   rules: false,
   aiBusy: false,
   muted: false,
-  collection: emptyCollection(),
-  lastOpen: null,
+  mulliganReveal: null,
+  justDrawn: [],
   setScreen: (screen) => set({ screen }),
   setMode: (mode) =>
     set((s) => ({
@@ -167,7 +137,7 @@ export const useGame = create<GameStore>((set, get) => ({
           mode === "war"
             ? s.setup.seats.length === 4
               ? s.setup.seats
-              : [...s.setup.seats, ...defaultSeats(4, true, legendPool(s.collection))].slice(0, 4)
+              : [...s.setup.seats, ...defaultSeats(4, true)].slice(0, 4)
             : s.setup.seats.slice(0, 3),
       },
     })),
@@ -176,22 +146,17 @@ export const useGame = create<GameStore>((set, get) => ({
       setup: {
         ...s.setup,
         mode: n === 4 ? "war" : "skirmish",
-        seats:
-          n === s.setup.seats.length
-            ? s.setup.seats
-            : defaultSeats(n, true, legendPool(s.collection)),
+        seats: n === s.setup.seats.length ? s.setup.seats : defaultSeats(n, true),
       },
     })),
   patchSeat: (i, patch) =>
     set((s) => {
-      if (patch.legendId && !isLegendUnlocked(s.collection, patch.legendId)) return s;
       const seats = s.setup.seats.map((seat, idx) => (idx === i ? { ...seat, ...patch } : seat));
       if (patch.legendId) {
-        const pool = legendPool(s.collection);
         for (let j = 0; j < seats.length; j++) {
           if (j !== i && seats[j]!.legendId === patch.legendId) {
             const used = new Set(seats.map((x) => x.legendId));
-            const alt = pool.find((id) => !used.has(id) || id === seats[j]!.legendId);
+            const alt = LEGEND_IDS.find((id) => !used.has(id) || id === seats[j]!.legendId);
             if (alt && alt !== patch.legendId) seats[j] = { ...seats[j]!, legendId: alt };
           }
         }
@@ -225,12 +190,11 @@ export const useGame = create<GameStore>((set, get) => ({
       unlockAudio();
       if (aiTimer) clearTimeout(aiTimer);
       const setup = get().setup;
-      const pool = legendPool(get().collection);
       const used = new Set<string>();
       const seats = setup.seats.map((seat, i) => {
-        let legendId = pool.includes(seat.legendId) ? seat.legendId : pool[i % pool.length]!;
+        let legendId = seat.legendId;
         if (used.has(legendId)) {
-          legendId = pool.find((id) => !used.has(id)) ?? legendId;
+          legendId = LEGEND_IDS.find((id) => !used.has(id)) ?? legendId;
         }
         used.add(legendId);
         return {
@@ -240,7 +204,15 @@ export const useGame = create<GameStore>((set, get) => ({
         };
       });
       const state = createGame({ ...setup, seats });
-      set({ screen: "play", state, selected: [], inspect: null, aiBusy: false });
+      set({
+        screen: "play",
+        state,
+        selected: [],
+        inspect: null,
+        aiBusy: false,
+        mulliganReveal: null,
+        justDrawn: [],
+      });
       if (state.players[state.current]?.kind === "ai") {
         set({ aiBusy: true });
         queueAi(get, set);
@@ -254,14 +226,21 @@ export const useGame = create<GameStore>((set, get) => ({
     if (!state) return;
     const cur = state.players[state.current];
     if (cur?.kind === "ai" && a.type !== "dismiss_combat" && a.type !== "confirm_seat") return;
+    const seat = state.current;
     const next = applyAction(state, a);
     if (!muted) playSfx(a, state, next);
+    const drawn = a.type === "mulligan" ? drawnAfterMulligan(state, next, seat) : [];
+    if (drawn.length && !muted) sfx("reveal");
     const clearSelect =
       a.type === "move" || a.type === "queue_move" || a.type === "mulligan" || a.type === "play";
     set({
       state: next,
       selected: clearSelect ? [] : get().selected,
-      inspect: next.phase === "pass_device" ? null : get().inspect,
+      inspect: next.phase === "pass_device" && !drawn.length ? null : get().inspect,
+      mulliganReveal: drawn.length
+        ? { iids: drawn.map((c) => c.iid), defIds: drawn.map((c) => c.defId) }
+        : get().mulliganReveal,
+      justDrawn: drawn.length ? drawn.map((c) => c.iid) : a.type === "mulligan" ? [] : get().justDrawn,
     });
     if (next.players[next.current]?.kind === "ai" && next.winner === null && next.phase !== "pass_device") {
       set({ aiBusy: true });
@@ -288,28 +267,17 @@ export const useGame = create<GameStore>((set, get) => ({
     setMuted(muted);
     set({ muted });
   },
-  hydrateCollection: () => {
-    const collection = readCollection();
-    const unlocked = legendPool(collection);
-    set((s) => ({
-      collection,
-      setup: { ...s.setup, seats: remapSeats(s.setup.seats, unlocked) },
-    }));
-  },
-  buyProduct: (id) => {
-    const result = openProduct(get().collection, id);
-    writeCollection(result.collection);
-    if (!get().muted) sfx("pack");
-    const unlocked = legendPool(result.collection);
-    set((s) => ({
-      collection: result.collection,
-      lastOpen: { ...result, productId: id },
-      setup: { ...s.setup, seats: remapSeats(s.setup.seats, unlocked) },
-    }));
-  },
-  clearLastOpen: () => set({ lastOpen: null }),
+  clearMulliganReveal: () => set({ mulliganReveal: null }),
   toTitle: () => {
     if (aiTimer) clearTimeout(aiTimer);
-    set({ screen: "title", state: null, selected: [], inspect: null, aiBusy: false, lastOpen: null });
+    set({
+      screen: "title",
+      state: null,
+      selected: [],
+      inspect: null,
+      aiBusy: false,
+      mulliganReveal: null,
+      justDrawn: [],
+    });
   },
 }));

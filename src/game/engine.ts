@@ -905,6 +905,12 @@ function applyMulligan(s: GameState, iids: string[]) {
   }
 }
 
+/** Cards that appeared in `seat`'s hand after a mulligan (the replacements). */
+export function drawnAfterMulligan(before: GameState, after: GameState, seat: number): CardInst[] {
+  const prev = new Set((before.players[seat]?.hand ?? []).map((c) => c.iid));
+  return (after.players[seat]?.hand ?? []).filter((c) => !prev.has(c.iid));
+}
+
 function autoMulligan(s: GameState) {
   const p = player(s);
   const expensive = p.hand

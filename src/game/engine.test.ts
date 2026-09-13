@@ -5,6 +5,7 @@ import {
   applyAction,
   battlefieldSeats,
   createGame,
+  drawnAfterMulligan,
   energyOf,
   hideHands,
   legalMoveDests,
@@ -58,6 +59,26 @@ function toAction(s: GameState): GameState {
   }
   return s;
 }
+
+describe("mulligan replacements", () => {
+  it("returns the new hand cards after a human bottoms one", () => {
+    const before = createGame({ mode: "skirmish", seats: HUMANS, seed: 1 });
+    assert.equal(before.phase, "mulligan");
+    const tossed = before.players[0]!.hand[0]!;
+    const after = applyAction(before, { type: "mulligan", iids: [tossed.iid] });
+    const drawn = drawnAfterMulligan(before, after, 0);
+    assert.equal(drawn.length, 1);
+    assert.notEqual(drawn[0]!.iid, tossed.iid);
+    assert.ok(after.players[0]!.hand.some((c) => c.iid === drawn[0]!.iid));
+    assert.ok(!after.players[0]!.hand.some((c) => c.iid === tossed.iid));
+  });
+
+  it("returns nothing when the hand is kept", () => {
+    const before = createGame({ mode: "skirmish", seats: HUMANS, seed: 2 });
+    const after = applyAction(before, { type: "mulligan", iids: [] });
+    assert.deepEqual(drawnAfterMulligan(before, after, 0), []);
+  });
+});
 
 describe("hideHands / pass-device privacy", () => {
   it("hides every hand while the device is being passed", () => {

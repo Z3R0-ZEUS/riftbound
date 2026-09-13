@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
-import { BookOpen, Bot, Download, Lock, Package, Swords, Users, Volume2, VolumeX } from "lucide-react";
+import { useState } from "react";
+import { BookOpen, Bot, Download, Swords, Users, Volume2, VolumeX } from "lucide-react";
 import { sfx } from "@/game/audio";
-import { DOMAINS, getDef, getLegend, LEGENDS } from "@/game/cards";
-import {
-  getProduct,
-  isLegendUnlocked,
-  PRODUCTS,
-  uniqueOwnedCount,
-  unlockedLegendIds,
-} from "@/game/collection";
+import { DOMAINS, getLegend, LEGENDS } from "@/game/cards";
+import { PRODUCT_ART } from "@/game/products";
 import { useGame } from "@/game/store";
-import { CardView } from "./CardView";
 import { cn } from "@/lib/cn";
 
 export function FanNote({ className }: { className?: string }) {
@@ -156,17 +149,6 @@ export function TitleScreen() {
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <button
             type="button"
-            className="inline-flex items-center gap-2 text-sm text-accent hover:text-fg"
-            onClick={() => {
-              click();
-              setScreen("shop");
-            }}
-          >
-            <Package className="size-4" />
-            Shop / Packs
-          </button>
-          <button
-            type="button"
             className="inline-flex items-center gap-2 text-sm text-muted hover:text-fg"
             onClick={() => {
               click();
@@ -192,7 +174,17 @@ export function TitleScreen() {
                   : "Download game (.zip)"}
           </button>
         </div>
-        <FanNote className="mt-8 max-w-xl pt-4" />
+        <div className="pack-credits mt-8">
+          <p className="text-[10px] font-medium tracking-[0.18em] text-subtle uppercase">
+            Fan packaging · every deck is in the box · not for sale
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {PRODUCT_ART.map((p) => (
+              <img key={p.id} src={p.art} alt={p.name} title={p.name} className="pack-credit-art" />
+            ))}
+          </div>
+        </div>
+        <FanNote className="mt-6 max-w-xl pt-4" />
         </div>
       </div>
     </div>
@@ -207,8 +199,6 @@ export function SetupScreen() {
   const fillAi = useGame((s) => s.fillAi);
   const start = useGame((s) => s.start);
   const toTitle = useGame((s) => s.toTitle);
-  const setScreen = useGame((s) => s.setScreen);
-  const collection = useGame((s) => s.collection);
   const n = setup.seats.length;
 
   return (
@@ -232,19 +222,8 @@ export function SetupScreen() {
           {setup.mode === "war" ? "War" : "Skirmish"} · {n} seats
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Pick a champion deck for each seat. Locked legends unlock from{" "}
-          <button
-            type="button"
-            className="text-accent hover:text-fg"
-            onClick={() => {
-              click();
-              setScreen("shop");
-            }}
-          >
-            Shop / Packs
-          </button>
-          . Ahri and Darius are in the box. Mark humans or AI. Hands stay hidden between seats — pass the device when
-          the table asks.
+          Pick a champion deck for each seat — Jinx, Garen, Ahri, Darius, Viktor, Lee Sin, Annie, and Lux are all in
+          the box. Mark humans or AI. Hands stay hidden between seats — pass the device when the table asks.
           {setup.mode === "war" ? " War: seat 1 brings no battlefield." : ""}
         </p>
 
@@ -346,33 +325,22 @@ export function SetupScreen() {
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-1">
-                    {LEGENDS.map((l) => {
-                      const locked = !isLegendUnlocked(collection, l.id);
-                      return (
-                        <button
-                          key={l.id}
-                          type="button"
-                          disabled={locked}
-                          title={locked ? `Unlock via Shop · ${l.product}` : l.name}
-                          className={cn(
-                            "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-medium",
-                            seat.legendId === l.id
-                              ? "bg-fg text-bg"
-                              : locked
-                                ? "bg-raised text-subtle"
-                                : "bg-raised text-muted hover:text-fg",
-                          )}
-                          onClick={() => {
-                            if (locked) return;
-                            click();
-                            patchSeat(i, { legendId: l.id });
-                          }}
-                        >
-                          {locked && <Lock className="size-3" />}
-                          {l.name}
-                        </button>
-                      );
-                    })}
+                    {LEGENDS.map((l) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        className={cn(
+                          "h-8 rounded-full px-2.5 text-xs font-medium",
+                          seat.legendId === l.id ? "bg-fg text-bg" : "bg-raised text-muted hover:text-fg",
+                        )}
+                        onClick={() => {
+                          click();
+                          patchSeat(i, { legendId: l.id });
+                        }}
+                      >
+                        {l.name}
+                      </button>
+                    ))}
                   </div>
                   <p className="text-xs leading-relaxed text-muted">
                     {legend.product} · {legend.domains.map((d) => DOMAINS[d].label).join(" / ")}
@@ -402,200 +370,6 @@ export function SetupScreen() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-export function ShopScreen() {
-  const toTitle = useGame((s) => s.toTitle);
-  const setScreen = useGame((s) => s.setScreen);
-  const collection = useGame((s) => s.collection);
-  const buyProduct = useGame((s) => s.buyProduct);
-  const lastOpen = useGame((s) => s.lastOpen);
-  const clearLastOpen = useGame((s) => s.clearLastOpen);
-  const unlocked = unlockedLegendIds(collection);
-  const owned = uniqueOwnedCount(collection);
-  const [shown, setShown] = useState(0);
-
-  useEffect(() => {
-    if (!lastOpen) {
-      setShown(0);
-      return;
-    }
-    setShown(0);
-    const n = lastOpen.pulls.length;
-    if (!n) return;
-    let i = 0;
-    const t = window.setInterval(() => {
-      i += 1;
-      setShown(i);
-      sfx("reveal");
-      if (i >= n) window.clearInterval(t);
-    }, 140);
-    return () => window.clearInterval(t);
-  }, [lastOpen]);
-
-  const opened = lastOpen ? getProduct(lastOpen.productId) : undefined;
-
-  return (
-    <div className="min-h-dvh bg-bg px-4 py-8 text-fg sm:px-8">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            className="text-sm text-muted hover:text-fg"
-            onClick={() => {
-              click();
-              clearLastOpen();
-              toTitle();
-            }}
-          >
-            Back
-          </button>
-          <MuteToggle />
-        </div>
-        <p className="mt-6 text-xs font-medium tracking-[0.22em] text-accent uppercase">Local shop · no real money</p>
-        <h1 className="font-display mt-2 text-3xl sm:text-4xl">Packs</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
-          Fan-made product art only — not official Riot pack scans. Opening a pack is free and stays on this device.
-          Boosters pull from the existing card pool. Champion decks and Proving Grounds unlock those legends for seat
-          setup.
-        </p>
-
-        <section className="menu-frame mt-6 rounded-2xl p-4 sm:p-5">
-          <h2 className="text-xs font-medium tracking-[0.18em] text-subtle uppercase">Your box</h2>
-          <p className="mt-2 text-sm text-muted">
-            {owned} unique card{owned === 1 ? "" : "s"} saved · {unlocked.length} legend
-            {unlocked.length === 1 ? "" : "s"} unlocked
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {LEGENDS.map((l) => {
-              const on = unlocked.includes(l.id);
-              return (
-                <span
-                  key={l.id}
-                  className={cn(
-                    "inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-medium",
-                    on ? "bg-fg text-bg" : "bg-raised text-subtle",
-                  )}
-                >
-                  {!on && <Lock className="size-3" />}
-                  {l.name}
-                </span>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PRODUCTS.map((p) => {
-            const times = collection.openedProductCounts[p.id] ?? 0;
-            return (
-              <article key={p.id} className="pack-card overflow-hidden rounded-2xl">
-                <div className="pack-art relative">
-                  <img src={p.art} alt="" className="h-full w-full object-contain" />
-                </div>
-                <div className="space-y-3 p-4">
-                  <p className="text-[10px] font-medium tracking-[0.18em] text-accent uppercase">
-                    {p.kind === "booster" ? "Booster" : p.kind === "starter-set" ? "Starter set" : "Champion deck"}
-                  </p>
-                  <h2 className="font-display text-xl leading-tight">{p.name}</h2>
-                  <p className="text-xs leading-relaxed text-muted">{p.blurb}</p>
-                  <p className="text-xs text-subtle">{times ? `Opened ×${times}` : "Unopened"}</p>
-                  <button
-                    type="button"
-                    className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-fg text-sm font-medium text-bg transition-transform duration-150 active:scale-[0.98]"
-                    onClick={() => {
-                      buyProduct(p.id);
-                    }}
-                  >
-                    Open · local · free
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-
-        <FanNote className="mt-8 max-w-2xl pt-4" />
-        <p className="mt-3 max-w-2xl text-xs text-subtle">
-          Collection is stored as <code>riftbound-collection</code> in localStorage. Nothing is purchased and nothing
-          leaves this browser.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-line px-5 text-sm text-muted hover:text-fg"
-            onClick={() => {
-              click();
-              clearLastOpen();
-              setScreen("setup");
-            }}
-          >
-            Seat the table
-          </button>
-        </div>
-      </div>
-
-      {lastOpen && opened && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <button
-            type="button"
-            className="scrim absolute inset-0"
-            aria-label="Close reveal"
-            onClick={() => clearLastOpen()}
-          />
-          <div className="relative z-10 max-h-[90dvh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-line bg-surface p-5 sm:rounded-2xl sm:p-6">
-            <p className="text-xs font-medium tracking-[0.2em] text-accent uppercase">Opened</p>
-            <h2 className="font-display mt-1 text-2xl">{opened.name}</h2>
-            {lastOpen.newlyUnlocked.length > 0 && (
-              <p className="mt-2 text-sm text-win">
-                Unlocked {lastOpen.newlyUnlocked.map((id) => getLegend(id).name).join(", ")} for seat setup.
-              </p>
-            )}
-            {lastOpen.pulls.length === 0 ? (
-              <p className="mt-4 text-sm text-muted">Added to your local box.</p>
-            ) : (
-              <div className="pack-fan mt-5">
-                {lastOpen.pulls.map((pull, i) => {
-                  const d = getDef(pull.defId);
-                  const visible = i < shown;
-                  return (
-                    <div
-                      key={`${pull.defId}-${i}`}
-                      className={cn("pack-reveal", visible && "is-shown")}
-                      style={{ ["--i" as string]: i }}
-                    >
-                      {visible ? (
-                        <CardView defId={d.id} size="sm" />
-                      ) : (
-                        <div className="tcg-card w-[4.5rem] sm:w-20">
-                          <img src="/art/cardback.jpg" alt="" />
-                        </div>
-                      )}
-                      {visible && (
-                        <p className="mt-1 text-center text-[10px] font-medium tracking-wide text-win uppercase">
-                          {pull.rarity}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <button
-              type="button"
-              className="mt-6 h-11 w-full rounded-xl bg-fg text-sm font-medium text-bg"
-              onClick={() => {
-                click();
-                clearLastOpen();
-              }}
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -631,6 +405,7 @@ export function RulesModal() {
           <p>Play units to your base, then click ready units to form a raid and send them onto a battlefield. Send the whole group to one field, or split them across several — planned marches resolve as Showdowns in order. During a Showdown both fighters may play Action and Reaction spells, and either can ask a third player for help, before Might is compared. After a fight you can still march any units that are ready.</p>
           <p>Your eighth point cannot come from a single last-second conquer unless you scored every battlefield this turn. Holding still wins immediately.</p>
           <p>Skirmish uses 3 battlefields. War (4 players) uses 3 — the first seat does not bring one.</p>
+          <p>Every champion deck is in the box: Jinx, Garen, Ahri, Darius, Viktor, Lee Sin, Annie, Lux. Nothing is locked and nothing is sold.</p>
         </div>
         <FanNote className="mt-5 pt-4" />
         <button
