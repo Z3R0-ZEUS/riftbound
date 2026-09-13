@@ -1,22 +1,19 @@
 import { create } from "zustand";
 import { stepAi } from "./ai";
-import { sfx, unlockAudio } from "./audio";
-import { applyAction, createGame } from "./engine";
+import { setMuted, sfx, unlockAudio } from "./audio";
 import { LEGENDS } from "./cards";
+import { applyAction, createGame, drawnAfterMulligan } from "./engine";
+import { readMuted, writeMuted } from "./mute";
 import type { GameAction, GameState, Mode, SeatConfig, SetupConfig } from "./types";
 
 export type Screen = "title" | "setup" | "play";
 
-const LEGEND_IDS = [
-  "jinx",
-  "viktor",
-  "leesin",
-  "annie",
-  "lux",
-  "garen",
-  "ahri",
-  "darius",
-];
+export type MulliganReveal = {
+  defIds: string[];
+  iids: string[];
+};
+
+const LEGEND_IDS = LEGENDS.map((l) => l.id);
 
 function defaultSeats(n: number, allHuman: boolean): SeatConfig[] {
   return Array.from({ length: n }, (_, i) => ({
@@ -35,6 +32,8 @@ type GameStore = {
   rules: boolean;
   aiBusy: boolean;
   muted: boolean;
+  mulliganReveal: MulliganReveal | null;
+  justDrawn: string[];
   setScreen: (s: Screen) => void;
   setMode: (m: Mode) => void;
   setSeatCount: (n: 3 | 4) => void;
@@ -47,19 +46,43 @@ type GameStore = {
   clearSelect: () => void;
   setInspect: (id: string | null) => void;
   setRules: (v: boolean) => void;
+  toggleMute: () => void;
+  hydrateMute: () => void;
+  clearMulliganReveal: () => void;
   toTitle: () => void;
 };
 
 let aiTimer: ReturnType<typeof setTimeout> | null = null;
 
 function playSfx(a: GameAction, prev: GameState | null, next: GameState) {
-  if (a.type === "play" || a.type === "play_champion") sfx("play");
-  else if (a.type === "move") sfx(next.lastCombat && next.lastCombat !== prev?.lastCombat ? "combat" : "move");
-  else if (a.type === "pass") sfx("channel");
-  else if (a.type === "invite") sfx("ui");
-  else if (a.type === "confirm_seat" || a.type === "mulligan") sfx("ui");
+  if (a.type === "play" || a.type === "play_champion" || a.type === "legend") sfx("play");
+  else if (a.type === "move" || a.type === "queue_move" || a.type === "launch_marches") {
+    sfx(next.lastCombat && next.lastCombat !== prev?.lastCombat ? "showdown" : "march");
+  } else if (a.type === "pass") sfx(next.showdown || prev?.showdown ? "ui" : "channel");
+  else if (a.type === "invite") sfx("invite");
+  else if (a.type === "confirm_seat") sfx("ready");
+  else if (a.type === "mulligan" || a.type === "target") sfx("click");
   if (next.winner !== null && prev?.winner === null) sfx("win");
-  else if (prev && next.players.some((p, i) => p.points > (prev.players[i]?.points ?? 0))) sfx("score");
+  else if (next.log[0]?.t.includes("Final point denied")) sfx("deny");
+  else if (prev && next.players.some((p, i) => p.points > (prev.players[i]?.points ?? 0))) {
+    sfx(next.log[0]?.t.includes("holds") ? "hold" : "score");
+  }
+  if (next.lastCombat && next.lastCombat !== prev?.lastCombat) sfx("showdown");
+}
+
+function sameAiWindow(a: GameState, b: GameState): boolean {
+  return (
+    a.phase === b.phase &&
+    a.current === b.current &&
+    a.winner === b.winner &&
+    !a.lastCombat &&
+    !b.lastCombat &&
+    a.showdown?.consecutivePasses === b.showdown?.consecutivePasses &&
+    a.showdown?.priorityIndex === b.showdown?.priorityIndex &&
+    a.targeting?.effect.type === b.targeting?.effect.type &&
+    a.log[0]?.t === b.log[0]?.t &&
+    a.marchQueue.length === b.marchQueue.length
+  );
 }
 
 function queueAi(get: () => GameStore, set: (p: Partial<GameStore>) => void) {
@@ -70,7 +93,7 @@ function queueAi(get: () => GameStore, set: (p: Partial<GameStore>) => void) {
       set({ aiBusy: false });
       return;
     }
-    if (state.phase === "pass_device" || state.phase === "mulligan") {
+    if (state.phase === "pass_device") {
       set({ aiBusy: false });
       return;
     }
@@ -81,8 +104,10 @@ function queueAi(get: () => GameStore, set: (p: Partial<GameStore>) => void) {
     }
     const next = stepAi(state);
     if (!muted) playSfx({ type: "pass" }, state, next);
-    set({ state: next, selected: [], aiBusy: true });
+    const progressed = !sameAiWindow(state, next);
+    set({ state: next, selected: [], inspect: next.phase === "pass_device" ? null : get().inspect, aiBusy: true });
     const stillAi =
+      progressed &&
       next.winner === null &&
       next.players[next.current]?.kind === "ai" &&
       next.phase !== "pass_device";
@@ -100,6 +125,8 @@ export const useGame = create<GameStore>((set, get) => ({
   rules: false,
   aiBusy: false,
   muted: false,
+  mulliganReveal: null,
+  justDrawn: [],
   setScreen: (screen) => set({ screen }),
   setMode: (mode) =>
     set((s) => ({
@@ -177,7 +204,15 @@ export const useGame = create<GameStore>((set, get) => ({
         };
       });
       const state = createGame({ ...setup, seats });
-      set({ screen: "play", state, selected: [], inspect: null, aiBusy: false });
+      set({
+        screen: "play",
+        state,
+        selected: [],
+        inspect: null,
+        aiBusy: false,
+        mulliganReveal: null,
+        justDrawn: [],
+      });
       if (state.players[state.current]?.kind === "ai") {
         set({ aiBusy: true });
         queueAi(get, set);
@@ -191,15 +226,27 @@ export const useGame = create<GameStore>((set, get) => ({
     if (!state) return;
     const cur = state.players[state.current];
     if (cur?.kind === "ai" && a.type !== "dismiss_combat" && a.type !== "confirm_seat") return;
+    const seat = state.current;
     const next = applyAction(state, a);
     if (!muted) playSfx(a, state, next);
+    const drawn = a.type === "mulligan" ? drawnAfterMulligan(state, next, seat) : [];
+    if (drawn.length && !muted) sfx("reveal");
+    const clearSelect =
+      a.type === "move" || a.type === "queue_move" || a.type === "mulligan" || a.type === "play";
     set({
       state: next,
-      selected: a.type === "move" || a.type === "queue_move" || a.type === "mulligan" || a.type === "play" ? [] : get().selected,
+      selected: clearSelect ? [] : get().selected,
+      inspect: next.phase === "pass_device" && !drawn.length ? null : get().inspect,
+      mulliganReveal: drawn.length
+        ? { iids: drawn.map((c) => c.iid), defIds: drawn.map((c) => c.defId) }
+        : get().mulliganReveal,
+      justDrawn: drawn.length ? drawn.map((c) => c.iid) : a.type === "mulligan" ? [] : get().justDrawn,
     });
     if (next.players[next.current]?.kind === "ai" && next.winner === null && next.phase !== "pass_device") {
       set({ aiBusy: true });
       queueAi(get, set);
+    } else if (next.players[next.current]?.kind !== "ai") {
+      set({ aiBusy: false });
     }
   },
   toggleSelect: (iid) =>
@@ -209,8 +256,28 @@ export const useGame = create<GameStore>((set, get) => ({
   clearSelect: () => set({ selected: [] }),
   setInspect: (inspect) => set({ inspect }),
   setRules: (rules) => set({ rules }),
+  toggleMute: () => {
+    const muted = !get().muted;
+    setMuted(muted);
+    writeMuted(muted);
+    set({ muted });
+  },
+  hydrateMute: () => {
+    const muted = readMuted();
+    setMuted(muted);
+    set({ muted });
+  },
+  clearMulliganReveal: () => set({ mulliganReveal: null }),
   toTitle: () => {
     if (aiTimer) clearTimeout(aiTimer);
-    set({ screen: "title", state: null, selected: [], aiBusy: false });
+    set({
+      screen: "title",
+      state: null,
+      selected: [],
+      inspect: null,
+      aiBusy: false,
+      mulliganReveal: null,
+      justDrawn: [],
+    });
   },
 }));

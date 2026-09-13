@@ -229,6 +229,17 @@ function refreshControl(s: GameState, bf: BattlefieldState): number | null {
   return bf.controller;
 }
 
+/** War: first seat does not bring a battlefield. Skirmish: every seat does. */
+export function battlefieldSeats<T>(mode: GameState["mode"], seats: T[]): T[] {
+  return mode === "war" ? seats.slice(1) : seats;
+}
+
+/** Eighth point on a conquer only if every other field was already scored this turn. */
+export function sweptForFinalPoint(s: GameState, bfId: string): boolean {
+  const others = s.battlefields.filter((b) => b.id !== bfId);
+  return others.length > 0 && others.every((b) => s.scoredThisTurn.includes(b.id));
+}
+
 function tryScore(s: GameState, owner: number, kind: "hold" | "conquer", bfId: string) {
   if (s.winner !== null) return;
   if (s.scoredThisTurn.includes(bfId)) return;
@@ -243,10 +254,7 @@ function tryScore(s: GameState, owner: number, kind: "hold" | "conquer", bfId: s
       log(s, `${p.name} holds and claims the Rift — ${p.points} points`, owner);
       return;
     }
-    const othersScored = s.battlefields
-      .filter((b) => b.id !== bfId)
-      .every((b) => s.scoredThisTurn.includes(b.id));
-    if (othersScored) {
+    if (sweptForFinalPoint(s, bfId)) {
       p.points += 1;
       s.scoredThisTurn.push(bfId);
       s.winner = owner;
@@ -490,6 +498,7 @@ function resumePhase(s: GameState) {
 }
 
 function openShowdown(s: GameState, bf: BattlefieldState, attacker: number, defender: number) {
+  s.current = attacker;
   s.showdown = {
     battlefieldId: bf.id,
     attacker,
@@ -497,6 +506,7 @@ function openShowdown(s: GameState, bf: BattlefieldState, attacker: number, defe
     turnPlayer: attacker,
     participants: [attacker, defender],
     consecutivePasses: 0,
+    priorityIndex: 0,
   };
   s.phase = "showdown";
   log(
@@ -508,12 +518,14 @@ function openShowdown(s: GameState, bf: BattlefieldState, attacker: number, defe
 
 function advanceShowdown(s: GameState) {
   const sd = s.showdown;
-  if (!sd) {
+  if (!sd || sd.participants.length === 0) {
     resumePhase(s);
     return;
   }
-  const idx = sd.participants.indexOf(s.current);
-  const next = sd.participants[(idx + 1 + sd.participants.length) % sd.participants.length]!;
+  const from = sd.participants.indexOf(s.current);
+  const idx = from >= 0 ? from : Math.max(0, sd.priorityIndex);
+  sd.priorityIndex = (idx + 1) % sd.participants.length;
+  const next = sd.participants[sd.priorityIndex]!;
   s.current = next;
   const p = player(s);
   if (p.kind === "human" && s.humanCount > 1) s.phase = "pass_device";
@@ -525,7 +537,7 @@ function yieldShowdown(s: GameState) {
   if (!sd) return;
   sd.consecutivePasses += 1;
   log(s, `${player(s).name} passes the showdown`, s.current);
-  if (sd.consecutivePasses >= sd.participants.length) {
+  if (sd.participants.length > 0 && sd.consecutivePasses >= sd.participants.length) {
     finishShowdown(s);
     return;
   }
@@ -605,8 +617,8 @@ function queueMarch(s: GameState, iids: string[], battlefieldId: string) {
   const free = iids.filter((id) => !reserved.has(id));
   if (!free.length) return;
   if (!legalMoveDests(s, free).includes(battlefieldId)) return;
-  const last = s.marchQueue[s.marchQueue.length - 1];
-  if (last && last.battlefieldId === battlefieldId) last.iids.push(...free);
+  const existing = s.marchQueue.find((m) => m.battlefieldId === battlefieldId);
+  if (existing) existing.iids.push(...free);
   else s.marchQueue.push({ iids: free, battlefieldId });
   const names = free.map((id) => getDef(findUnit(s, id)!.unit.defId).name).join(", ");
   log(s, `${player(s).name} assigns ${names} → ${getDef(s.battlefields.find((b) => b.id === battlefieldId)!.defId).name}`, s.current);
@@ -893,6 +905,12 @@ function applyMulligan(s: GameState, iids: string[]) {
   }
 }
 
+/** Cards that appeared in `seat`'s hand after a mulligan (the replacements). */
+export function drawnAfterMulligan(before: GameState, after: GameState, seat: number): CardInst[] {
+  const prev = new Set((before.players[seat]?.hand ?? []).map((c) => c.iid));
+  return (after.players[seat]?.hand ?? []).filter((c) => !prev.has(c.iid));
+}
+
 function autoMulligan(s: GameState) {
   const p = player(s);
   const expensive = p.hand
@@ -975,7 +993,7 @@ export function createGame(setup: SetupConfig): GameState {
     draw(s, idx, 4);
   });
 
-  const contrib = setup.mode === "war" ? setup.seats.slice(1) : setup.seats;
+  const contrib = battlefieldSeats(setup.mode, setup.seats);
   contrib.forEach((seat, i) => {
     const legend = getLegend(seat.legendId);
     s.battlefields.push({
@@ -1001,6 +1019,15 @@ export function applyAction(state: GameState, action: GameAction): GameState {
   if (action.type === "dismiss_combat") {
     s.lastCombat = null;
     launchNextMarch(s);
+    if (
+      s.winner === null &&
+      s.phase === "action" &&
+      !s.showdown &&
+      !s.lastCombat &&
+      movableUnits(s).length
+    ) {
+      log(s, `${player(s).name} still has ready units to march`, s.current);
+    }
     return s;
   }
   if (action.type === "confirm_seat") {
@@ -1052,6 +1079,8 @@ export function applyAction(state: GameState, action: GameAction): GameState {
     if (!s.players[action.playerId]) return s;
     sd.participants.push(action.playerId);
     sd.consecutivePasses = 0;
+    const pri = sd.participants.indexOf(s.current);
+    if (pri >= 0) sd.priorityIndex = pri;
     log(s, `${player(s).name} asks ${s.players[action.playerId]!.name} for help`, s.current);
     return s;
   }

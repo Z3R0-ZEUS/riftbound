@@ -46,6 +46,8 @@ function zipDownloadPlugin(): Plugin {
     },
   };
 }
+
+function pgliteBootstrapPlugin(): Plugin {
   return {
     name: "app-builder:pglite-bootstrap",
     apply: "serve",

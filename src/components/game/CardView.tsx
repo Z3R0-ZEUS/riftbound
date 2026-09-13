@@ -50,6 +50,7 @@ export function CardView({
   selected,
   playable,
   dim,
+  drawn,
   hidden,
   state,
   bfId,
@@ -62,6 +63,7 @@ export function CardView({
   selected?: boolean;
   playable?: boolean;
   dim?: boolean;
+  drawn?: boolean;
   hidden?: boolean;
   state?: GameState;
   bfId?: string;
@@ -107,6 +109,7 @@ export function CardView({
   const keys = keywordList(d);
   const showText = size === "md" || size === "lg";
   const showKeys = size !== "xs";
+  const domain = d.domains[0];
 
   return (
     <button
@@ -117,8 +120,10 @@ export function CardView({
         selected && "is-selected",
         playable && "is-playable",
         dim && "is-dim",
+        drawn && "is-drawn",
         inst?.exhausted && "is-exhausted",
       )}
+      style={domain ? { ["--card-domain" as string]: `var(--domain-${domain})` } : undefined}
       onClick={() => {
         if (held.current) {
           held.current = false;
@@ -146,14 +151,14 @@ export function CardView({
     >
       <img src={d.art} alt="" crossOrigin="anonymous" />
       {d.kind !== "battlefield" && d.kind !== "legend" && (
-        <span className="absolute top-1 left-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-bg/90 px-1.5 text-xs font-semibold text-fg tabular">
-          {d.energy}
-          {d.power > 0 ? `/${d.power}` : ""}
+        <span className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
+          <StatBadge kind="energy" value={d.energy} />
+          {d.power > 0 && <StatBadge kind="power" value={d.power} />}
         </span>
       )}
       {typeof might === "number" && d.kind === "unit" && (
-        <span className="absolute top-1 right-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-win px-1.5 text-xs font-semibold text-accent-fg tabular">
-          {might}
+        <span className="absolute top-1.5 right-1.5 z-10">
+          <StatBadge kind="might" value={might} />
         </span>
       )}
       {inst && inst.damage > 0 && (
@@ -163,17 +168,21 @@ export function CardView({
       )}
       <span className="tcg-nameplate">
         <span className="flex items-center justify-between gap-1">
-          <span className="font-display text-xs leading-tight text-fg">{d.name}</span>
+          <span className="font-display text-xs leading-tight tracking-wide text-fg">{d.name}</span>
           <DomainPips domains={d.domains} />
         </span>
         {showKeys && (
-          <span className="mt-0.5 block text-xs leading-tight text-win">
-            {kindLabel(d.kind)}
-            {keys.length ? ` · ${keys.join(" · ")}` : ""}
+          <span className="mt-0.5 flex flex-wrap gap-0.5">
+            <span className="keyword-chip is-kind">{kindLabel(d.kind)}</span>
+            {keys.map((k) => (
+              <span key={k} className="keyword-chip">
+                {k}
+              </span>
+            ))}
           </span>
         )}
         {showText && (
-          <span className="mt-0.5 block text-xs leading-snug text-fg/90">
+          <span className="card-ability mt-1 block text-xs leading-snug">
             {d.text || "No ability."}
           </span>
         )}
@@ -200,49 +209,79 @@ function sizeClass(size: "xs" | "sm" | "md" | "lg") {
 export function CardSheet({ defId }: { defId: string }) {
   const d = getDef(defId);
   const keys = keywordList(d);
+  const playable = d.kind !== "legend" && d.kind !== "battlefield";
   return (
     <article className="flex w-full max-w-lg flex-col gap-4 sm:flex-row">
       <div className="mx-auto w-44 shrink-0 pointer-events-none">
         <CardView defId={d.id} size="lg" />
       </div>
-      <div className="min-w-0 flex-1 rounded-xl border border-line bg-surface p-4">
-        <p className="text-xs font-medium tracking-wide text-accent uppercase">{kindLabel(d.kind)}</p>
-        <h3 className="font-display mt-1 text-2xl text-fg">{d.name}</h3>
+      <div className="inspect-sheet min-w-0 flex-1 rounded-xl p-4">
+        <p className="kicker">{kindLabel(d.kind)}</p>
+        <h3 className="font-display mt-1 text-2xl tracking-wide text-fg">{d.name}</h3>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <DomainPips domains={d.domains} />
           {d.domains.map((dom) => (
-            <span key={dom} className="text-xs capitalize text-muted">
+            <span key={dom} className="text-xs font-medium capitalize text-fg">
               {dom}
             </span>
           ))}
         </div>
-        <dl className="mt-4 grid grid-cols-3 gap-2">
-          {d.kind !== "legend" && d.kind !== "battlefield" && (
-            <Stat label="Energy" value={d.energy} />
-          )}
-          {d.power > 0 && <Stat label="Power" value={d.power} />}
-          {typeof d.might === "number" && <Stat label="Might" value={d.might} />}
-        </dl>
+        {playable && (
+          <dl className="mt-4 grid grid-cols-3 gap-2.5">
+            <Stat kind="energy" label="Energy" value={d.energy} />
+            <Stat kind="power" label="Power" value={d.power} />
+            {d.kind === "unit" ? (
+              <Stat kind="might" label="Might" value={d.might ?? 0} />
+            ) : (
+              <div className="stat-box is-empty rounded-lg text-center">
+                <dt className="uppercase">Might</dt>
+                <dd className="font-display text-xl text-subtle tabular">—</dd>
+              </div>
+            )}
+          </dl>
+        )}
         {keys.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">
             {keys.map((k) => (
-              <span key={k} className="rounded-full border border-line bg-raised px-2 py-1 text-xs text-win">
+              <span key={k} className="keyword-chip is-lg">
                 {k}
               </span>
             ))}
           </div>
         )}
-        <p className="mt-4 text-sm leading-relaxed text-fg">{d.text || "No ability text."}</p>
+        <section className="ability-panel mt-4 rounded-lg p-3">
+          <h4 className="text-[10px] font-semibold tracking-[0.16em] text-accent uppercase">Ability</h4>
+          <p className="mt-1 text-sm leading-relaxed text-fg">{d.text || "No ability text."}</p>
+        </section>
       </div>
     </article>
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function StatBadge({ kind, value }: { kind: "energy" | "power" | "might"; value: number }) {
+  const label = kind === "energy" ? "E" : kind === "power" ? "P" : "M";
+  const title = kind === "energy" ? "Energy" : kind === "power" ? "Power" : "Might";
   return (
-    <div className="rounded-lg bg-raised px-2 py-2 text-center">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="font-display text-xl text-fg tabular">{value}</dd>
+    <span className={cn("stat-badge", `is-${kind}`)} title={`${title} ${value}`}>
+      <span className="stat-badge-label">{label}</span>
+      <span className="stat-badge-value tabular">{value}</span>
+    </span>
+  );
+}
+
+function Stat({
+  kind,
+  label,
+  value,
+}: {
+  kind: "energy" | "power" | "might";
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className={cn("stat-box rounded-lg text-center", `is-${kind}`)}>
+      <dt className="uppercase">{label}</dt>
+      <dd className="font-display text-xl tabular">{value}</dd>
     </div>
   );
 }

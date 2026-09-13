@@ -114,6 +114,8 @@ export interface ShowdownState {
   turnPlayer: number;
   participants: number[];
   consecutivePasses: number;
+  /** Index into `participants` for whose priority window this is. */
+  priorityIndex: number;
 }
 
 export interface March {
