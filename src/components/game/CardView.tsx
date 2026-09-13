@@ -151,13 +151,13 @@ export function CardView({
     >
       <img src={d.art} alt="" crossOrigin="anonymous" />
       {d.kind !== "battlefield" && d.kind !== "legend" && (
-        <span className="absolute top-1 left-1 z-10 flex flex-col gap-0.5">
+        <span className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
           <StatBadge kind="energy" value={d.energy} />
           {d.power > 0 && <StatBadge kind="power" value={d.power} />}
         </span>
       )}
       {typeof might === "number" && d.kind === "unit" && (
-        <span className="absolute top-1 right-1 z-10">
+        <span className="absolute top-1.5 right-1.5 z-10">
           <StatBadge kind="might" value={might} />
         </span>
       )}
@@ -227,14 +227,14 @@ export function CardSheet({ defId }: { defId: string }) {
           ))}
         </div>
         {playable && (
-          <dl className="mt-4 grid grid-cols-3 gap-2">
+          <dl className="mt-4 grid grid-cols-3 gap-2.5">
             <Stat kind="energy" label="Energy" value={d.energy} />
             <Stat kind="power" label="Power" value={d.power} />
             {d.kind === "unit" ? (
               <Stat kind="might" label="Might" value={d.might ?? 0} />
             ) : (
-              <div className="stat-box is-empty rounded-lg px-2 py-2 text-center">
-                <dt className="text-[10px] font-semibold tracking-wide uppercase">Might</dt>
+              <div className="stat-box is-empty rounded-lg text-center">
+                <dt className="uppercase">Might</dt>
                 <dd className="font-display text-xl text-subtle tabular">—</dd>
               </div>
             )}
@@ -279,8 +279,8 @@ function Stat({
   value: number;
 }) {
   return (
-    <div className={cn("stat-box rounded-lg px-2 py-2 text-center", `is-${kind}`)}>
-      <dt className="text-[10px] font-semibold tracking-wide uppercase">{label}</dt>
+    <div className={cn("stat-box rounded-lg text-center", `is-${kind}`)}>
+      <dt className="uppercase">{label}</dt>
       <dd className="font-display text-xl tabular">{value}</dd>
     </div>
   );

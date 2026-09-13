@@ -144,20 +144,30 @@
 .stat-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  min-height: 1.35rem;
-  padding: 0 0.35rem;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 2.05rem;
+  min-height: 1.55rem;
+  padding: 0.22rem 0.5rem;
   border-radius: 999px;
   border: 1px solid rgb(0 0 0 / 0.45);
-  font-size: 0.65rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.2;
+  overflow: visible;
+  white-space: nowrap;
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.45);
 }
 
+.stat-badge-label,
+.stat-badge-value {
+  display: inline-block;
+  line-height: 1.2;
+}
+
 .stat-badge-label {
-  opacity: 0.85;
-  letter-spacing: 0.04em;
+  opacity: 0.9;
+  letter-spacing: 0;
 }
 
 .stat-badge.is-energy {
@@ -178,9 +188,25 @@
   border-color: #8a7548;
 }
 
+.stat-box {
+  overflow: visible;
+  min-width: 0;
+  padding: 0.55rem 0.45rem;
+}
+
 .stat-box dt {
   color: inherit;
-  opacity: 0.8;
+  opacity: 0.9;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.stat-box dd {
+  line-height: 1.2;
+  overflow: visible;
 }
 
 .stat-box.is-energy {
@@ -209,14 +235,18 @@
 .keyword-chip {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  padding: 0.05rem 0.35rem;
+  padding: 0.22rem 0.5rem;
+  min-height: 1.4rem;
   background: rgb(201 180 138 / 0.18);
   color: #f3e6c4;
   border: 1px solid rgb(201 180 138 / 0.55);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.25;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .keyword-chip.is-kind {
@@ -226,8 +256,9 @@
 }
 
 .keyword-chip.is-lg {
-  font-size: 0.7rem;
-  padding: 0.2rem 0.5rem;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.65rem;
+  min-height: 1.7rem;
 }
 
 .card-ability {
