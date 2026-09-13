@@ -1,9 +1,28 @@
+/** Small procedural SFX bus. No sampled Riot audio — oscillators only. */
+
+export type SfxName =
+  | "click"
+  | "ui"
+  | "play"
+  | "channel"
+  | "march"
+  | "showdown"
+  | "score"
+  | "win"
+  | "combat"
+  | "move";
+
+type Cue = SfxName;
+
 let ctx: AudioContext | null = null;
+let unlocked = false;
 
 function ac(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!ctx) {
-    const C = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const C =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!C) return null;
     ctx = new C();
   }
@@ -11,57 +30,117 @@ function ac(): AudioContext | null {
   return ctx;
 }
 
-export function unlockAudio() {
-  ac();
-}
-
-function tone(freq: number, dur: number, type: OscillatorType, gain = 0.05, at = 0) {
-  const c = ac();
-  if (!c) return;
+function tone(
+  c: AudioContext,
+  freq: number,
+  dur: number,
+  type: OscillatorType,
+  gain = 0.05,
+  at = 0,
+) {
   const o = c.createOscillator();
   const g = c.createGain();
   o.type = type;
   o.frequency.value = freq;
-  g.gain.value = gain;
+  g.gain.value = 0.0001;
   o.connect(g);
   g.connect(c.destination);
   const t = c.currentTime + at;
-  g.gain.setValueAtTime(gain, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.001, gain), t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.start(t);
-  o.stop(t + dur + 0.02);
+  o.stop(t + dur + 0.03);
 }
 
-export function sfx(kind: "play" | "move" | "combat" | "score" | "win" | "ui" | "channel") {
-  switch (kind) {
-    case "ui":
-      tone(520, 0.06, "triangle", 0.03);
-      break;
-    case "play":
-      tone(280, 0.12, "square", 0.04);
-      tone(420, 0.1, "triangle", 0.03, 0.04);
-      break;
-    case "channel":
-      tone(240, 0.08, "sine", 0.04);
-      tone(360, 0.1, "sine", 0.03, 0.05);
-      break;
-    case "move":
-      tone(180, 0.1, "sawtooth", 0.025);
-      break;
-    case "combat":
-      tone(90, 0.18, "square", 0.06);
-      tone(140, 0.12, "sawtooth", 0.04, 0.04);
-      break;
-    case "score":
-      tone(440, 0.1, "triangle", 0.05);
-      tone(660, 0.14, "triangle", 0.04, 0.08);
-      break;
-    case "win":
-      tone(392, 0.16, "triangle", 0.05);
-      tone(523, 0.18, "triangle", 0.045, 0.12);
-      tone(659, 0.28, "triangle", 0.05, 0.24);
-      break;
-    default:
-      break;
+function noiseBurst(c: AudioContext, dur: number, gain: number, at = 0) {
+  const n = Math.floor(c.sampleRate * dur);
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const src = c.createBufferSource();
+  const g = c.createGain();
+  const f = c.createBiquadFilter();
+  f.type = "lowpass";
+  f.frequency.value = 900;
+  src.buffer = buf;
+  src.connect(f);
+  f.connect(g);
+  g.connect(c.destination);
+  const t = c.currentTime + at;
+  g.gain.setValueAtTime(gain, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.start(t);
+  src.stop(t + dur + 0.02);
+}
+
+class SoundManager {
+  muted = false;
+
+  setMuted(next: boolean) {
+    this.muted = next;
   }
+
+  unlock() {
+    const c = ac();
+    unlocked = !!c;
+    return unlocked;
+  }
+
+  play(kind: Cue) {
+    if (this.muted) return;
+    const c = ac();
+    if (!c) return;
+    switch (kind) {
+      case "click":
+      case "ui":
+        tone(c, 620, 0.045, "triangle", 0.028);
+        break;
+      case "play":
+        tone(c, 280, 0.11, "square", 0.035);
+        tone(c, 420, 0.09, "triangle", 0.028, 0.035);
+        break;
+      case "channel":
+        tone(c, 220, 0.08, "sine", 0.036);
+        tone(c, 330, 0.1, "sine", 0.028, 0.05);
+        tone(c, 440, 0.08, "sine", 0.02, 0.1);
+        break;
+      case "move":
+      case "march":
+        tone(c, 170, 0.09, "sawtooth", 0.022);
+        tone(c, 255, 0.07, "triangle", 0.018, 0.05);
+        break;
+      case "combat":
+      case "showdown":
+        noiseBurst(c, 0.12, 0.05);
+        tone(c, 86, 0.16, "square", 0.05);
+        tone(c, 140, 0.11, "sawtooth", 0.032, 0.04);
+        break;
+      case "score":
+        tone(c, 440, 0.09, "triangle", 0.045);
+        tone(c, 660, 0.13, "triangle", 0.036, 0.07);
+        break;
+      case "win":
+        tone(c, 392, 0.15, "triangle", 0.045);
+        tone(c, 523, 0.16, "triangle", 0.04, 0.11);
+        tone(c, 659, 0.26, "triangle", 0.045, 0.22);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+export const sound = new SoundManager();
+
+export function unlockAudio() {
+  sound.unlock();
+}
+
+export function setMuted(next: boolean) {
+  sound.setMuted(next);
+}
+
+export function sfx(kind: SfxName) {
+  sound.play(kind);
 }

@@ -490,6 +490,7 @@ function resumePhase(s: GameState) {
 }
 
 function openShowdown(s: GameState, bf: BattlefieldState, attacker: number, defender: number) {
+  s.current = attacker;
   s.showdown = {
     battlefieldId: bf.id,
     attacker,
@@ -497,6 +498,7 @@ function openShowdown(s: GameState, bf: BattlefieldState, attacker: number, defe
     turnPlayer: attacker,
     participants: [attacker, defender],
     consecutivePasses: 0,
+    priorityIndex: 0,
   };
   s.phase = "showdown";
   log(
@@ -508,12 +510,14 @@ function openShowdown(s: GameState, bf: BattlefieldState, attacker: number, defe
 
 function advanceShowdown(s: GameState) {
   const sd = s.showdown;
-  if (!sd) {
+  if (!sd || sd.participants.length === 0) {
     resumePhase(s);
     return;
   }
-  const idx = sd.participants.indexOf(s.current);
-  const next = sd.participants[(idx + 1 + sd.participants.length) % sd.participants.length]!;
+  const from = sd.participants.indexOf(s.current);
+  const idx = from >= 0 ? from : Math.max(0, sd.priorityIndex);
+  sd.priorityIndex = (idx + 1) % sd.participants.length;
+  const next = sd.participants[sd.priorityIndex]!;
   s.current = next;
   const p = player(s);
   if (p.kind === "human" && s.humanCount > 1) s.phase = "pass_device";
@@ -525,7 +529,7 @@ function yieldShowdown(s: GameState) {
   if (!sd) return;
   sd.consecutivePasses += 1;
   log(s, `${player(s).name} passes the showdown`, s.current);
-  if (sd.consecutivePasses >= sd.participants.length) {
+  if (sd.participants.length > 0 && sd.consecutivePasses >= sd.participants.length) {
     finishShowdown(s);
     return;
   }
@@ -605,8 +609,8 @@ function queueMarch(s: GameState, iids: string[], battlefieldId: string) {
   const free = iids.filter((id) => !reserved.has(id));
   if (!free.length) return;
   if (!legalMoveDests(s, free).includes(battlefieldId)) return;
-  const last = s.marchQueue[s.marchQueue.length - 1];
-  if (last && last.battlefieldId === battlefieldId) last.iids.push(...free);
+  const existing = s.marchQueue.find((m) => m.battlefieldId === battlefieldId);
+  if (existing) existing.iids.push(...free);
   else s.marchQueue.push({ iids: free, battlefieldId });
   const names = free.map((id) => getDef(findUnit(s, id)!.unit.defId).name).join(", ");
   log(s, `${player(s).name} assigns ${names} → ${getDef(s.battlefields.find((b) => b.id === battlefieldId)!.defId).name}`, s.current);
@@ -1052,6 +1056,8 @@ export function applyAction(state: GameState, action: GameAction): GameState {
     if (!s.players[action.playerId]) return s;
     sd.participants.push(action.playerId);
     sd.consecutivePasses = 0;
+    const pri = sd.participants.indexOf(s.current);
+    if (pri >= 0) sd.priorityIndex = pri;
     log(s, `${player(s).name} asks ${s.players[action.playerId]!.name} for help`, s.current);
     return s;
   }
