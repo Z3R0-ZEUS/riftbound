@@ -78,9 +78,9 @@ export function TitleScreen() {
         src="/art/rift.jpg"
         alt=""
         crossOrigin="anonymous"
-        className="absolute inset-0 h-full w-full object-cover opacity-55"
+        className="absolute inset-0 h-full w-full object-cover opacity-75"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#060807] via-[#0a100d]/70 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#060807] via-[#0a100d]/45 to-transparent" />
       <div className="vignette" />
       <div className="title-stage mx-auto flex min-h-dvh max-w-5xl flex-col justify-end px-5 pb-10 pt-12 sm:justify-end sm:pb-14">
         <div className="flex items-start justify-between gap-3">
@@ -108,7 +108,7 @@ export function TitleScreen() {
               setScreen("setup");
             }}
           >
-            <img src="/art/bf-dragon.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-40" />
+            <img src="/art/bf-dragon.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-60" />
             <div className="relative p-5">
               <Users className="size-5 text-accent" />
               <h2 className="font-display mt-3 text-2xl tracking-wide">Skirmish</h2>
@@ -125,7 +125,7 @@ export function TitleScreen() {
               setScreen("setup");
             }}
           >
-            <img src="/art/bf-baron.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-40" />
+            <img src="/art/bf-baron.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-60" />
             <div className="relative p-5">
               <Swords className="size-5 text-win" />
               <h2 className="font-display mt-3 text-2xl tracking-wide">War</h2>
@@ -282,7 +282,7 @@ export function SetupScreen() {
               <article key={i} className="deck-box">
                 <div className="relative h-28">
                   <img src={legend.art} alt="" crossOrigin="anonymous" className="h-full w-full object-cover object-top" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#121814] via-[#121814]/25 to-transparent" />
                   <span className="absolute bottom-3 left-3 font-display text-lg">Seat {i + 1}</span>
                   {setup.mode === "war" && i === 0 && (
                     <span className="metal-token absolute top-3 right-3 rounded-full px-2 py-1 text-[10px] font-medium text-win">

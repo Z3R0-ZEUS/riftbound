@@ -302,12 +302,13 @@
 
 .inspect-sheet {
   background:
-    radial-gradient(ellipse at 18% 0%, rgb(201 180 138 / 0.16), transparent 46%),
-    linear-gradient(180deg, #2a2418, #16130e);
-  border: 1px solid rgb(201 180 138 / 0.4);
+    radial-gradient(ellipse at 18% 0%, rgb(201 180 138 / 0.28), transparent 46%),
+    repeating-linear-gradient(0deg, rgb(255 236 190 / 0.03) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #3d3424, #221c14);
+  border: 1px solid rgb(201 180 138 / 0.5);
   box-shadow:
     0 18px 44px rgb(0 0 0 / 0.5),
-    inset 0 1px 0 rgb(255 236 190 / 0.12);
+    inset 0 1px 0 rgb(255 236 190 / 0.2);
 }
 
 .tcg-card.is-drawn {
@@ -319,9 +320,9 @@
 }
 
 .pack-credits {
-  border-top: 1px solid rgb(201 180 138 / 0.14);
+  border-top: 1px solid rgb(201 180 138 / 0.18);
   padding-top: 0.85rem;
-  opacity: 0.72;
+  opacity: 0.88;
 }
 
 .pack-credit-art {
@@ -347,10 +348,10 @@
   background:
     radial-gradient(ellipse at 50% 20%, rgb(50 72 54 / 0.28), transparent 60%),
     linear-gradient(180deg, #18241c, #0e1612);
-  border: 1px solid rgb(201 180 138 / 0.28);
+  border: 1px solid rgb(201 180 138 / 0.4);
   box-shadow:
     0 16px 28px rgb(0 0 0 / 0.4),
-    inset 0 1px 0 rgb(255 255 255 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
     inset 0 0 0 1px rgb(0 0 0 / 0.35);
 }
 
@@ -447,12 +448,12 @@
   position: relative;
   isolation: isolate;
   min-height: 9.25rem;
-  border: 1px solid rgb(201 180 138 / 0.32);
+  border: 1px solid rgb(201 180 138 / 0.48);
   background:
-    linear-gradient(180deg, rgb(42 32 20 / 0.45), rgb(12 14 12 / 0.72));
+    linear-gradient(180deg, rgb(42 32 20 / 0.28), rgb(12 14 12 / 0.55));
   box-shadow:
     0 18px 32px rgb(0 0 0 / 0.42),
-    inset 0 1px 0 rgb(255 236 190 / 0.14),
+    inset 0 1px 0 rgb(255 236 190 / 0.2),
     inset 0 0 0 1px rgb(0 0 0 / 0.35);
 }
 
@@ -703,7 +704,7 @@
   position: absolute;
   inset: 0;
   background: url("/art/rift.jpg") center / cover;
-  opacity: 0.07;
+  opacity: 0.16;
   pointer-events: none;
   z-index: 0;
 }
@@ -716,6 +717,18 @@
   box-shadow:
     inset 0 0 140px 52px rgb(0 0 0 / 0.62),
     inset 0 -90px 90px rgb(0 0 0 / 0.38);
+}
+
+.title-shell .vignette {
+  box-shadow:
+    inset 0 0 110px 36px rgb(0 0 0 / 0.42),
+    inset 0 -70px 80px rgb(0 0 0 / 0.28);
+}
+
+.setup-shell .vignette {
+  box-shadow:
+    inset 0 0 120px 40px rgb(0 0 0 / 0.48),
+    inset 0 -60px 70px rgb(0 0 0 / 0.28);
 }
 
 .title-stage,
@@ -759,23 +772,24 @@
 .wood-rail {
   position: relative;
   z-index: 4;
-  border-top: 1px solid rgb(201 180 138 / 0.2);
+  border-top: 1px solid rgb(201 180 138 / 0.32);
   background:
-    linear-gradient(90deg, rgb(0 0 0 / 0.28), transparent 8%, transparent 92%, rgb(0 0 0 / 0.28)),
-    repeating-linear-gradient(90deg, rgb(90 58 28 / 0.16) 0 2px, transparent 2px 8px),
-    linear-gradient(180deg, #3a2818, #24180f);
+    linear-gradient(90deg, rgb(0 0 0 / 0.32), transparent 8%, transparent 92%, rgb(0 0 0 / 0.32)),
+    repeating-linear-gradient(90deg, rgb(120 78 36 / 0.28) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, #4a3420, #2c1c10);
   box-shadow:
-    inset 0 1px 0 rgb(255 220 160 / 0.1),
+    inset 0 1px 0 rgb(255 220 160 / 0.16),
     0 -8px 20px rgb(0 0 0 / 0.25);
 }
 
 .felt-strip {
   position: relative;
   z-index: 4;
-  border-top: 1px solid rgb(201 180 138 / 0.14);
+  border-top: 1px solid rgb(201 180 138 / 0.22);
   background:
-    radial-gradient(ellipse at 50% 0%, rgb(46 72 52 / 0.28), transparent 60%),
-    linear-gradient(180deg, #101812, #0a100d);
+    radial-gradient(ellipse at 50% 0%, rgb(62 96 70 / 0.42), transparent 60%),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.03) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #16241c, #0c1410);
 }
 
 .metal-token {
@@ -849,23 +863,24 @@
 .deck-box {
   overflow: hidden;
   border-radius: 14px;
-  border: 1px solid rgb(201 180 138 / 0.26);
+  border: 1px solid rgb(201 180 138 / 0.38);
   background:
-    linear-gradient(180deg, rgb(80 58 32 / 0.2), transparent 36%),
-    linear-gradient(180deg, #1a221c, #121814);
+    linear-gradient(180deg, rgb(80 58 32 / 0.28), transparent 36%),
+    linear-gradient(180deg, #1e2820, #141c18);
   box-shadow:
     0 16px 32px rgb(0 0 0 / 0.42),
-    inset 0 1px 0 rgb(255 236 190 / 0.08);
+    inset 0 1px 0 rgb(255 236 190 / 0.14);
 }
 
 .parchment-panel {
   background:
-    radial-gradient(ellipse at 20% 0%, rgb(201 180 138 / 0.16), transparent 48%),
-    linear-gradient(180deg, #2a2418, #16130e);
-  border: 1px solid rgb(201 180 138 / 0.38);
+    radial-gradient(ellipse at 20% 0%, rgb(201 180 138 / 0.28), transparent 48%),
+    repeating-linear-gradient(0deg, rgb(255 236 190 / 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #3d3424, #221c14);
+  border: 1px solid rgb(201 180 138 / 0.48);
   box-shadow:
     0 22px 48px rgb(0 0 0 / 0.5),
-    inset 0 1px 0 rgb(255 236 190 / 0.12);
+    inset 0 1px 0 rgb(255 236 190 / 0.18);
 }
 
 .legend-plaque {
