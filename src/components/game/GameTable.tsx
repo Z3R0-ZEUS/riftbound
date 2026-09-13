@@ -31,6 +31,21 @@ function useScorePulses(state: GameState | null) {
   return hits;
 }
 
+function useScoredFields(state: GameState | null) {
+  const prev = useRef<string[]>([]);
+  const [hits, setHits] = useState<string[]>([]);
+  useEffect(() => {
+    if (!state) return;
+    const next = state.scoredThisTurn.filter((id) => !prev.current.includes(id));
+    prev.current = [...state.scoredThisTurn];
+    if (!next.length) return;
+    setHits(next);
+    const t = window.setTimeout(() => setHits([]), 900);
+    return () => window.clearTimeout(t);
+  }, [state]);
+  return hits;
+}
+
 function useRuneFlashes(runes: PlayerState["runes"]) {
   const prev = useRef<Set<string>>(new Set());
   const [flash, setFlash] = useState<Set<string>>(new Set());
@@ -59,6 +74,7 @@ export function GameTable() {
   const toTitle = useGame((s) => s.toTitle);
   const [peekId, setPeekId] = useState<string | null>(null);
   const pulses = useScorePulses(state);
+  const scoredFields = useScoredFields(state);
   if (!state) return null;
 
   const acting = state.players[state.current]!;
@@ -79,8 +95,20 @@ export function GameTable() {
   const movable = new Set(myTurn ? movableUnits(state).map((u) => u.iid) : []);
   const targets = state.targeting && !frozen ? legalTargets(state, state.targeting.effect, state.current) : null;
 
+  if (passing) {
+    return (
+      <div className="relative flex min-h-dvh flex-col bg-bg text-fg">
+        <header className="relative z-[81] flex items-center justify-between gap-3 px-3 py-2 sm:px-5">
+          <span className="font-display text-lg tracking-wide">Riftbound</span>
+          <MuteToggle />
+        </header>
+        <PassOverlay />
+      </div>
+    );
+  }
+
   return (
-    <CardPeek.Provider value={{ peek: passing ? () => {} : setPeekId, inspect: passing ? () => {} : setInspect }}>
+    <CardPeek.Provider value={{ peek: setPeekId, inspect: setInspect }}>
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
       <header className="flex items-center justify-between gap-3 border-b border-line px-3 py-2 sm:px-5">
         <div className="flex items-center gap-3">
@@ -131,18 +159,20 @@ export function GameTable() {
           const showdownHere = state.showdown?.battlefieldId === bf.id;
           const impact = state.lastCombat?.battlefieldId === bf.id;
           const domain = bdef.domains[0];
+          const justScored = scoredFields.includes(bf.id);
           return (
             <section
               key={bf.id}
               className={cn(
-                "bf-panel relative min-h-40 overflow-hidden rounded-2xl border border-line bg-surface",
+                "bf-panel relative min-h-44 overflow-hidden rounded-2xl border border-line bg-surface",
                 (drop || targetBf || showdownHere) && "bf-glow",
                 incomingCount > 0 && "bf-march",
+                justScored && "conquer-flash",
                 impact && "shake",
               )}
-              style={domain ? { borderColor: `color-mix(in oklab, var(--domain-${domain}) 45%, transparent)` } : undefined}
+              style={domain ? { borderColor: `color-mix(in oklab, var(--domain-${domain}) 55%, transparent)` } : undefined}
             >
-              <img src={bdef.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-40" />
+              <img src={bdef.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-45" />
               {incomingCount > 0 && <div className="march-trail" />}
               {impact && (
                 <>
@@ -152,10 +182,14 @@ export function GameTable() {
                   ))}
                 </>
               )}
+              {justScored && <span className="score-float">+1</span>}
               <div className="relative flex h-full flex-col p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="font-display text-base">{bdef.name}</h3>
+                    <div className="bf-nameplate">
+                      {domain && <span className="pip" style={{ background: `var(--domain-${domain})` }} />}
+                      <h3 className="font-display text-base">{bdef.name}</h3>
+                    </div>
                     <p className="text-[11px] text-muted">{bdef.text}</p>
                     <p className="mt-1 text-[11px] text-subtle">
                       {ctrl ? `Held by ${ctrl.name}` : "Contested / open"}
@@ -521,10 +555,10 @@ function PassOverlay() {
   const me = state.players[state.current]!;
   const legend = getLegend(me.legendId);
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <img src={legend.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-25 blur-sm" />
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <img src={legend.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-20 blur-md" />
       <div className="scrim absolute inset-0" />
-      <div className="relative z-10 max-w-md rounded-2xl border border-line bg-bg/95 p-8 text-center pop">
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-line bg-bg/95 p-6 text-center pop sm:p-8">
         <p className="text-xs tracking-[0.25em] text-accent uppercase">Pass the device</p>
         <h2 className="font-display mt-3 text-4xl">{me.name}</h2>
         <p className="mt-2 text-sm text-muted">
@@ -546,11 +580,15 @@ function PassOverlay() {
 function MarchBar({ state, selected, ready }: { state: GameState; selected: number; ready: number }) {
   const dispatch = useGame((s) => s.dispatch);
   if (!state.marchQueue.length && selected === 0) {
-    return ready > 1 ? (
+    if (ready <= 0) return null;
+    const leftover = state.log[0]?.t.includes("still has ready units");
+    return (
       <div className="border-t border-line bg-raised px-4 py-2 text-center text-xs text-muted">
-        {ready} units ready. Select several and send them together, or split them across battlefields.
+        {leftover
+          ? `${ready} still ready after the showdown — Accelerate and Ganking units can still march.`
+          : `${ready} units ready. Select several and send them together, or split them across battlefields.`}
       </div>
-    ) : null;
+    );
   }
   if (!state.marchQueue.length) {
     return (

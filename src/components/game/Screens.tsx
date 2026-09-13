@@ -81,6 +81,7 @@ export function TitleScreen() {
       />
       <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-bg/25" />
       <div className="relative z-10 mx-auto flex min-h-dvh max-w-5xl flex-col justify-end px-5 pb-10 pt-14 sm:justify-center sm:pb-16">
+        <div className="hero-frame max-w-3xl rounded-3xl p-6 sm:p-8">
         <div className="flex items-start justify-between gap-3">
           <p className="text-xs font-medium tracking-[0.28em] text-accent uppercase">Local table · 3–4 seats</p>
           <MuteToggle />
@@ -95,7 +96,7 @@ export function TitleScreen() {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <button
             type="button"
-            className="menu-frame group rounded-2xl p-5 text-left transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.99]"
+            className="mode-card group overflow-hidden rounded-2xl text-left transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.99]"
             onClick={() => {
               click();
               setSeatCount(3);
@@ -103,13 +104,16 @@ export function TitleScreen() {
               setScreen("setup");
             }}
           >
+            <img src="/art/bf-dragon.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+            <div className="relative p-5">
             <Users className="size-5 text-accent" />
             <h2 className="font-display mt-3 text-2xl">Skirmish</h2>
             <p className="mt-1 text-sm text-muted">3 seats · 3 battlefields. The tight local table.</p>
+            </div>
           </button>
           <button
             type="button"
-            className="menu-frame rounded-2xl p-5 text-left transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.99]"
+            className="mode-card overflow-hidden rounded-2xl text-left transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.99]"
             onClick={() => {
               click();
               setSeatCount(4);
@@ -117,9 +121,12 @@ export function TitleScreen() {
               setScreen("setup");
             }}
           >
+            <img src="/art/bf-baron.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+            <div className="relative p-5">
             <Swords className="size-5 text-win" />
             <h2 className="font-display mt-3 text-2xl">War</h2>
             <p className="mt-1 text-sm text-muted">4 seats · 3 battlefields. First seat does not bring a field.</p>
+            </div>
           </button>
         </div>
 
@@ -167,6 +174,7 @@ export function TitleScreen() {
           </button>
         </div>
         <FanNote className="mt-8 max-w-xl pt-4" />
+        </div>
       </div>
     </div>
   );
@@ -205,6 +213,7 @@ export function SetupScreen() {
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
           Pick a champion deck for each seat. Mark humans or AI. Hands stay hidden between seats — pass the device when
           the table asks.
+          {setup.mode === "war" ? " War: seat 1 brings no battlefield." : ""}
         </p>
 
         <section className="mt-6">
@@ -260,6 +269,11 @@ export function SetupScreen() {
                   <img src={legend.art} alt="" crossOrigin="anonymous" className="h-full w-full object-cover object-top" />
                   <div className="absolute inset-0 bg-gradient-to-t from-surface to-transparent" />
                   <span className="absolute bottom-3 left-3 font-display text-lg">Seat {i + 1}</span>
+                  {setup.mode === "war" && i === 0 && (
+                    <span className="absolute top-3 right-3 rounded-full bg-bg/85 px-2 py-1 text-[10px] font-medium text-win">
+                      No battlefield
+                    </span>
+                  )}
                 </div>
                 <div className="space-y-3 p-4">
                   <label className="block text-xs font-medium text-muted">
