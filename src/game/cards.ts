@@ -90,7 +90,7 @@ export const LEGENDS: LegendInfo[] = [
     abilityText: "Once per turn: put a 1-Might Recruit into your base.",
     championId: "viktor-champ",
     battlefieldId: "nexus",
-    art: "/art/viktor.jpg",
+    art: "/art/cards/legend-viktor.jpg",
     blurb: "Origins Champion Deck. Swarm — expendable Recruits, then pick the board apart.",
     product: "Origins Champion Deck",
   },
@@ -103,7 +103,7 @@ export const LEGENDS: LegendInfo[] = [
     abilityText: "Once per turn: Exhaust and pay 1 energy. A friendly unit gets +1 Might.",
     championId: "leesin-champ",
     battlefieldId: "abyss",
-    art: "/art/leesin.jpg",
+    art: "/art/cards/legend-leesin.jpg",
     blurb: "Origins Champion Deck. Midrange buffs — small bodies become hard fights.",
     product: "Origins Champion Deck",
   },
@@ -116,7 +116,7 @@ export const LEGENDS: LegendInfo[] = [
     abilityText: "Once per turn: Exhaust your legend to ready two runes.",
     championId: "annie-champ",
     battlefieldId: "dragon",
-    art: "/art/annie.jpg",
+    art: "/art/cards/legend-annie.jpg",
     blurb: "Proving Grounds. Burn — ready runes, then Tibbers and incinerate the lane.",
     product: "Proving Grounds",
   },
@@ -129,7 +129,7 @@ export const LEGENDS: LegendInfo[] = [
     abilityText: "When you cast a spell costing 3 or more, draw 1.",
     championId: "lux-champ",
     battlefieldId: "baron",
-    art: "/art/lux.jpg",
+    art: "/art/cards/legend-lux.jpg",
     blurb: "Proving Grounds. Spell value — expensive light magic refills your hand.",
     product: "Proving Grounds",
   },
@@ -589,7 +589,7 @@ const CARDS: CardDef[] = [
     energy: 4,
     power: 1,
     text: "Deal 4 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/dunk.jpg",
     playEffect: { type: "damage", n: 4 },
   },
   {
@@ -730,7 +730,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "Once per turn: put a 1-Might Recruit into your base.",
-    art: "/art/viktor.jpg",
+    art: "/art/cards/legend-viktor.jpg",
     legendAbility: "viktor",
   },
   {
@@ -741,7 +741,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "Once per turn: Exhaust and pay 1 energy. A friendly unit gets +1 Might.",
-    art: "/art/leesin.jpg",
+    art: "/art/cards/legend-leesin.jpg",
     legendAbility: "leesin",
   },
   {
@@ -752,7 +752,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "Once per turn: Exhaust your legend to ready two runes.",
-    art: "/art/annie.jpg",
+    art: "/art/cards/legend-annie.jpg",
     legendAbility: "annie",
   },
   {
@@ -763,7 +763,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "When you cast a spell costing 3 or more, draw 1.",
-    art: "/art/lux.jpg",
+    art: "/art/cards/legend-lux.jpg",
     legendAbility: "lux",
   },
   {
@@ -775,7 +775,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 4,
     text: "Accelerate. Champion.",
-    art: "/art/viktor.jpg",
+    art: "/art/cards/viktor-champ.jpg",
     accelerate: true,
     isChampion: true,
   },
@@ -788,7 +788,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 6,
     text: "Defender 1. Champion.",
-    art: "/art/leesin.jpg",
+    art: "/art/cards/leesin-champ.jpg",
     defender: 1,
     isChampion: true,
   },
@@ -801,7 +801,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 7,
     text: "Assault 1. Champion.",
-    art: "/art/tibbers.jpg",
+    art: "/art/cards/annie-champ.jpg",
     assault: 1,
     isChampion: true,
   },
@@ -814,7 +814,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 4,
     text: "When you conquer, draw 1. Champion.",
-    art: "/art/lux.jpg",
+    art: "/art/cards/lux-champ.jpg",
     onConquer: { type: "draw", n: 1 },
     isChampion: true,
   },
@@ -827,7 +827,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 1,
     text: "Token. Created by Viktor.",
-    art: "/art/recruit.jpg",
+    art: "/art/cards/recruit.jpg",
   },
   {
     id: "eager-apprentice",
@@ -838,7 +838,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 1,
     text: "",
-    art: "/art/recruit.jpg",
+    art: "/art/cards/eager-apprentice.jpg",
   },
   {
     id: "soaring-scout",
@@ -849,7 +849,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "Accelerate.",
-    art: "/art/unit-monk.jpg",
+    art: "/art/cards/soaring-scout.jpg",
     accelerate: true,
   },
   {
@@ -861,7 +861,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "",
-    art: "/art/unit-demacia.jpg",
+    art: "/art/cards/ravenbloom.jpg",
   },
   {
     id: "drummer",
@@ -872,7 +872,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "When played, ready a rune.",
-    art: "/art/unit-noxus.jpg",
+    art: "/art/cards/drummer.jpg",
     playEffect: { type: "ready_rune" },
   },
   {
@@ -884,7 +884,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 4,
     text: "Defender 1.",
-    art: "/art/viktor.jpg",
+    art: "/art/cards/cruel-patron.jpg",
     defender: 1,
   },
   {
@@ -895,7 +895,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Deal 2 damage to a unit.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/cull.jpg",
     playEffect: { type: "damage", n: 2 },
   },
   {
@@ -906,7 +906,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Return an enemy unit to its owner's base.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/stupefy.jpg",
     playEffect: { type: "recall" },
   },
   {
@@ -917,7 +917,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Draw 1. Ready a rune.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/consult.jpg",
     playEffect: { type: "draw", n: 1 },
   },
   {
@@ -928,7 +928,7 @@ const CARDS: CardDef[] = [
     energy: 1,
     power: 0,
     text: "Put a 1-Might Recruit into your base.",
-    art: "/art/recruit.jpg",
+    art: "/art/cards/sprite-call.jpg",
     playEffect: { type: "token" },
   },
   {
@@ -939,7 +939,7 @@ const CARDS: CardDef[] = [
     energy: 1,
     power: 0,
     text: "Deal 1 damage to a unit.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/hidden-blade.jpg",
     playEffect: { type: "damage", n: 1 },
   },
   {
@@ -951,7 +951,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "",
-    art: "/art/unit-monk.jpg",
+    art: "/art/cards/pit-rookie.jpg",
   },
   {
     id: "stalwart-poro",
@@ -962,7 +962,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "Defender 1.",
-    art: "/art/poro.jpg",
+    art: "/art/cards/stalwart-poro.jpg",
     defender: 1,
   },
   {
@@ -974,7 +974,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "",
-    art: "/art/unit-brute.jpg",
+    art: "/art/cards/first-mate.jpg",
   },
   {
     id: "wielder",
@@ -985,7 +985,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "",
-    art: "/art/unit-monk.jpg",
+    art: "/art/cards/wielder.jpg",
   },
   {
     id: "wildclaw",
@@ -996,7 +996,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 4,
     text: "Assault 1.",
-    art: "/art/unit-brute.jpg",
+    art: "/art/cards/wildclaw.jpg",
     assault: 1,
   },
   {
@@ -1007,7 +1007,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "A friendly unit gets +2 Might this turn.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/discipline.jpg",
     playEffect: { type: "buff", n: 2 },
   },
   {
@@ -1018,7 +1018,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Deal 2 damage to a unit.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/challenge.jpg",
     playEffect: { type: "damage", n: 2 },
   },
   {
@@ -1029,7 +1029,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "A friendly unit gets +2 Might this turn. Ready a rune.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/stand-united.jpg",
     playEffect: { type: "buff", n: 2 },
   },
   {
@@ -1041,7 +1041,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 1,
     text: "",
-    art: "/art/poro.jpg",
+    art: "/art/cards/mystic-poro.jpg",
   },
   {
     id: "merchant",
@@ -1052,7 +1052,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "When played, draw 1.",
-    art: "/art/unit-zaun.jpg",
+    art: "/art/cards/merchant.jpg",
     playEffect: { type: "draw", n: 1 },
   },
   {
@@ -1064,7 +1064,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "Accelerate.",
-    art: "/art/unit-zaun.jpg",
+    art: "/art/cards/deckhand.jpg",
     accelerate: true,
   },
   {
@@ -1076,7 +1076,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 4,
     text: "Assault 1.",
-    art: "/art/annie.jpg",
+    art: "/art/cards/annie-fiery.jpg",
     assault: 1,
   },
   {
@@ -1088,7 +1088,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 4,
     text: "",
-    art: "/art/unit-brute.jpg",
+    art: "/art/cards/marauder.jpg",
   },
   {
     id: "gust",
@@ -1098,7 +1098,7 @@ const CARDS: CardDef[] = [
     energy: 1,
     power: 0,
     text: "Return an enemy unit to its owner's base.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/gust.jpg",
     playEffect: { type: "recall" },
   },
   {
@@ -1109,7 +1109,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Deal 2 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/incinerate.jpg",
     playEffect: { type: "damage", n: 2 },
   },
   {
@@ -1120,7 +1120,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "Deal 3 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/disintegrate.jpg",
     playEffect: { type: "damage", n: 3 },
   },
   {
@@ -1131,7 +1131,7 @@ const CARDS: CardDef[] = [
     energy: 4,
     power: 1,
     text: "Deal 2 damage to each enemy unit at a battlefield.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/firestorm.jpg",
     playEffect: { type: "damage_all_enemy_at", n: 2 },
   },
   {
@@ -1143,7 +1143,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 1,
     text: "",
-    art: "/art/lux.jpg",
+    art: "/art/cards/light-mage.jpg",
   },
   {
     id: "prism-guard",
@@ -1154,7 +1154,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "Defender 1.",
-    art: "/art/unit-demacia.jpg",
+    art: "/art/cards/prism-guard.jpg",
     defender: 1,
   },
   {
@@ -1166,7 +1166,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "",
-    art: "/art/lux.jpg",
+    art: "/art/cards/illuminator.jpg",
   },
   {
     id: "final-spark",
@@ -1176,7 +1176,7 @@ const CARDS: CardDef[] = [
     energy: 4,
     power: 1,
     text: "Deal 4 damage to a unit.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/final-spark.jpg",
     playEffect: { type: "damage", n: 4 },
   },
   {
@@ -1187,7 +1187,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "Deal 2 damage to a unit. Draw 1.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/lucent.jpg",
     playEffect: { type: "damage", n: 2 },
   },
   {
@@ -1198,7 +1198,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "A friendly unit gets +2 Might this turn.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/prismatic.jpg",
     playEffect: { type: "buff", n: 2 },
   },
   {
@@ -1209,7 +1209,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "Draw 2 cards.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/illuminate.jpg",
     playEffect: { type: "draw", n: 2 },
   },
 
