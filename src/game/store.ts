@@ -23,6 +23,24 @@ function defaultSeats(n: number, allHuman: boolean): SeatConfig[] {
   }));
 }
 
+function modeForSeatCount(n: number): Mode {
+  if (n <= 2) return "duel";
+  if (n >= 4) return "war";
+  return "skirmish";
+}
+
+function seatsForMode(mode: Mode): 2 | 3 | 4 {
+  if (mode === "duel") return 2;
+  if (mode === "war") return 4;
+  return 3;
+}
+
+function resizeSeats(current: SeatConfig[], n: number): SeatConfig[] {
+  if (current.length === n) return current;
+  if (current.length > n) return current.slice(0, n);
+  return [...current, ...defaultSeats(n, true).slice(current.length)];
+}
+
 type GameStore = {
   screen: Screen;
   setup: SetupConfig;
@@ -36,7 +54,7 @@ type GameStore = {
   justDrawn: string[];
   setScreen: (s: Screen) => void;
   setMode: (m: Mode) => void;
-  setSeatCount: (n: 3 | 4) => void;
+  setSeatCount: (n: 2 | 3 | 4) => void;
   patchSeat: (i: number, patch: Partial<SeatConfig>) => void;
   fillHumans: () => void;
   fillAi: () => void;
@@ -133,20 +151,15 @@ export const useGame = create<GameStore>((set, get) => ({
       setup: {
         ...s.setup,
         mode,
-        seats:
-          mode === "war"
-            ? s.setup.seats.length === 4
-              ? s.setup.seats
-              : [...s.setup.seats, ...defaultSeats(4, true)].slice(0, 4)
-            : s.setup.seats.slice(0, 3),
+        seats: resizeSeats(s.setup.seats, seatsForMode(mode)),
       },
     })),
   setSeatCount: (n) =>
     set((s) => ({
       setup: {
         ...s.setup,
-        mode: n === 4 ? "war" : "skirmish",
-        seats: n === s.setup.seats.length ? s.setup.seats : defaultSeats(n, true),
+        mode: modeForSeatCount(n),
+        seats: resizeSeats(s.setup.seats, n),
       },
     })),
   patchSeat: (i, patch) =>

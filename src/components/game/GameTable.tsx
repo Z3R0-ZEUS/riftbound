@@ -6,6 +6,7 @@ import {
   energyOf,
   legalMoveDests,
   legalTargets,
+  modeLabel,
   movableUnits,
   playableFromHand,
   unitMight,
@@ -46,6 +47,44 @@ function useScoredFields(state: GameState | null) {
   return hits;
 }
 
+function useArrivals(state: GameState | null): Set<string> {
+  const seen = useRef<Set<string> | null>(null);
+  const [fresh, setFresh] = useState<string[]>([]);
+  useEffect(() => {
+    if (!state) return;
+    const ids = new Set<string>();
+    for (const p of state.players) for (const u of p.base) ids.add(u.iid);
+    for (const bf of state.battlefields) for (const u of bf.units) ids.add(u.iid);
+    if (seen.current === null) {
+      seen.current = ids;
+      return;
+    }
+    const born = [...ids].filter((id) => !seen.current!.has(id));
+    seen.current = ids;
+    if (!born.length || state.players[state.current]?.kind === "ai") return;
+    setFresh(born);
+    const t = window.setTimeout(() => setFresh([]), 460);
+    return () => window.clearTimeout(t);
+  }, [state]);
+  return new Set(fresh);
+}
+
+function ActionToast({ state }: { state: GameState }) {
+  const [line, setLine] = useState<string | null>(null);
+  const prev = useRef(state.log[0]?.t ?? "");
+  useEffect(() => {
+    const next = state.log[0]?.t ?? "";
+    if (!next || next === prev.current) return;
+    prev.current = next;
+    if (state.players[state.current]?.kind === "ai") return;
+    setLine(next);
+    const t = window.setTimeout(() => setLine(null), 680);
+    return () => window.clearTimeout(t);
+  }, [state]);
+  if (!line) return null;
+  return <div className="fx-toast">{line}</div>;
+}
+
 function useRuneFlashes(runes: PlayerState["runes"]) {
   const prev = useRef<Set<string>>(new Set());
   const [flash, setFlash] = useState<Set<string>>(new Set());
@@ -77,6 +116,7 @@ export function GameTable() {
   const [peekId, setPeekId] = useState<string | null>(null);
   const pulses = useScorePulses(state);
   const scoredFields = useScoredFields(state);
+  const arrivals = useArrivals(state);
   if (!state) return null;
 
   const acting = state.players[state.current]!;
@@ -114,11 +154,11 @@ export function GameTable() {
     <CardPeek.Provider value={{ peek: setPeekId, inspect: setInspect }}>
     <div className="table-shell screen-enter flex flex-col">
       <div className="vignette" />
-      <header className="metal-rail flex items-center justify-between gap-3 px-3 py-2 sm:px-5">
+      <header className="metal-rail flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2 sm:px-5">
         <div className="flex items-center gap-3">
           <span className="font-display text-lg tracking-wide">Riftbound</span>
-          <span className="hidden text-xs text-muted sm:inline">
-            {state.mode === "war" ? "War" : "Skirmish"} · First to {state.victory}
+          <span className="text-[11px] leading-tight text-muted sm:text-xs">
+            {modeLabel(state.mode)} · First to {state.victory}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -145,6 +185,7 @@ export function GameTable() {
           </button>
         </div>
       </header>
+      <ActionToast state={state} />
 
       <div className="relative z-[3] flex gap-2 overflow-x-auto px-3 py-2 sm:px-5">
         {others.map((p) => (
@@ -152,7 +193,12 @@ export function GameTable() {
         ))}
       </div>
 
-      <div className="table-well grid flex-1 grid-cols-1 gap-3 px-3 py-2 sm:grid-cols-3 sm:px-5">
+      <div
+        className={cn(
+          "table-well grid flex-1 grid-cols-1 gap-3 px-3 py-2 sm:px-5",
+          state.battlefields.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3",
+        )}
+      >
         {state.battlefields.map((bf) => {
           const bdef = getDef(bf.defId);
           const drop = dests.includes(bf.id);
@@ -170,13 +216,14 @@ export function GameTable() {
               className={cn(
                 "bf-panel relative min-h-44 overflow-hidden rounded-2xl",
                 (drop || targetBf || showdownHere) && "bf-glow",
+                showdownHere && "bf-lock",
                 incomingCount > 0 && "bf-march",
                 justScored && "conquer-flash",
                 impact && "shake",
               )}
               style={domain ? { borderColor: `color-mix(in oklab, var(--domain-${domain}) 55%, transparent)` } : undefined}
             >
-              <img src={bdef.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-45" />
+              <img src={bdef.art} alt="" crossOrigin="anonymous" className="bf-plate absolute inset-0 h-full w-full object-cover" />
               {incomingCount > 0 && <div className="march-trail" />}
               {impact && (
                 <>
@@ -187,7 +234,7 @@ export function GameTable() {
                 </>
               )}
               {justScored && <span className="score-float">+1</span>}
-              <div className="relative flex h-full flex-col p-3">
+              <div className="bf-mat relative flex h-full flex-col p-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="bf-nameplate">
@@ -205,12 +252,13 @@ export function GameTable() {
                     </span>
                   )}
                 </div>
-                <div className="mt-auto flex flex-wrap gap-1.5 pt-3">
+                <div className="bf-units mt-auto flex flex-wrap items-end gap-1.5 pt-3">
                   {bf.units.map((u) => (
                     <CardView
                       key={u.iid}
                       inst={u}
-                      size="xs"
+                      size="sm"
+                      arriving={arrivals.has(u.iid)}
                       state={state}
                       bfId={bf.id}
                       selected={selected.includes(u.iid)}
@@ -254,6 +302,7 @@ export function GameTable() {
         myTurn={myTurn}
         selected={selected}
         movable={movable}
+        arrivals={arrivals}
         targets={targets}
         onToggle={toggleSelect}
         onInspect={setInspect}
@@ -347,6 +396,7 @@ function CurrentRow({
   myTurn,
   selected,
   movable,
+  arrivals,
   targets,
   onToggle,
   onInspect,
@@ -357,6 +407,7 @@ function CurrentRow({
   myTurn: boolean;
   selected: string[];
   movable: Set<string>;
+  arrivals: Set<string>;
   targets: { iids: string[]; battlefieldIds: string[] } | null;
   onToggle: (iid: string) => void;
   onInspect: (id: string | null) => void;
@@ -384,7 +435,7 @@ function CurrentRow({
         {me.champion && (
           <CardView
             inst={me.champion}
-            size="sm"
+            size="md"
             state={state}
             hidden={hideHand}
             playable={!hideHand && myTurn && canPlayChampion(state)}
@@ -413,8 +464,8 @@ function CurrentRow({
                 key={r.iid}
                 title={r.domain}
                 className={cn(
-                  "size-4 rounded-full border border-line-strong sm:size-5",
-                  r.exhausted && "opacity-30",
+                  "rune-gem",
+                  r.exhausted && "opacity-35",
                   flashes.has(r.iid) && "rune-flash",
                 )}
                 style={{ background: `var(--domain-${r.domain})` }}
@@ -426,8 +477,9 @@ function CurrentRow({
               <CardView
                 key={u.iid}
                 inst={u}
-                size="xs"
+                size="sm"
                 state={state}
+                arriving={arrivals.has(u.iid)}
                 selected={selected.includes(u.iid)}
                 playable={movable.has(u.iid) && !hideHand}
                 dim={!!targets && !targets.iids.includes(u.iid)}
@@ -494,7 +546,7 @@ function HandBar({
           ? "Hands are face-down until this seat is ready."
           : "Hover a card to read it. Hold or right-click to pin. E is Energy, P is Power, gold M is Might."}
       </p>
-      <div className="flex items-end justify-center gap-1 overflow-x-auto pb-1 sm:gap-2">
+      <div className="hand-fan">
         {me.hand.map((c) => {
           const playable = !hideHand && myTurn && playableFromHand(state, c);
           return (
@@ -723,9 +775,17 @@ function CombatOverlay() {
       <div className="parchment-panel relative z-10 w-full max-w-md rounded-2xl p-6 pop">
         <div className="vfx-impact rounded-xl" />
         <h2 className="font-display text-2xl">Showdown</h2>
-        <p className="mt-2 tabular text-sm text-muted">
-          {state.players[c.attacker]?.name} {c.atkMight} · {state.players[c.defender]?.name} {c.defMight}
-        </p>
+        <div className="fx-might-row">
+          <div className="fx-might">
+            <b className="tabular">{c.atkMight}</b>
+            <span>{state.players[c.attacker]?.name}</span>
+          </div>
+          <div className="fx-slash" />
+          <div className="fx-might">
+            <b className="tabular">{c.defMight}</b>
+            <span>{state.players[c.defender]?.name}</span>
+          </div>
+        </div>
         <ul className="mt-3 space-y-1 text-sm text-muted">
           {c.log.map((line, i) => (
             <li key={i}>{line}</li>
@@ -753,6 +813,7 @@ function WinnerOverlay() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <img src={legend.art} alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-45" />
       <div className="scrim absolute inset-0" />
+      <div className="fx-crest" />
       <div className="parchment-panel relative z-10 w-full max-w-md rounded-2xl p-8 text-center pop">
         <Crown className="mx-auto size-8 text-win" />
         <h2 className="font-display mt-3 text-4xl">{w.name} wins</h2>

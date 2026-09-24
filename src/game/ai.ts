@@ -2,10 +2,12 @@ import { getDef } from "./cards";
 import {
   applyAction,
   getLegalActions,
+  legalMoveDests,
   legalTargets,
+  movableUnits,
   unitMight,
 } from "./engine";
-import type { GameAction, GameState } from "./types";
+import type { CardInst, GameAction, GameState } from "./types";
 
 function scoreAction(s: GameState, a: GameAction): number {
   if (a.type === "dismiss_combat" || a.type === "confirm_seat") return 1000;
@@ -135,9 +137,131 @@ function scoreAction(s: GameState, a: GameAction): number {
   return 0;
 }
 
+type RaidPlan = { iids: string[]; battlefieldId: string };
+
+function onBase(s: GameState, u: CardInst): boolean {
+  return s.players[u.owner]?.base.some((x) => x.iid === u.iid) ?? false;
+}
+
+/**
+ * Minimum force that strictly out-might the defenders.
+ * One unit is enough for an empty field. A fight we cannot win is skipped
+ * so the leftover unit stays home.
+ */
+function cheapestWin(s: GameState, pool: CardInst[], enemyMight: number, bfId: string): CardInst[] | null {
+  const byEconomy = (a: CardInst, b: CardInst) => {
+    const base = Number(onBase(s, b)) - Number(onBase(s, a));
+    if (base !== 0) return base;
+    return unitMight(s, a, "attack", bfId) - unitMight(s, b, "attack", bfId);
+  };
+  const ordered = pool.slice().sort(byEconomy);
+  const solo = ordered.find((u) => unitMight(s, u, "attack", bfId) > enemyMight);
+  const heavy = pool.slice().sort((a, b) => {
+    const base = Number(onBase(s, b)) - Number(onBase(s, a));
+    if (base !== 0) return base;
+    return unitMight(s, b, "attack", bfId) - unitMight(s, a, "attack", bfId);
+  });
+  const chosen: CardInst[] = [];
+  if (!solo) {
+    let might = 0;
+    for (const u of heavy) {
+      chosen.push(u);
+      might += unitMight(s, u, "attack", bfId);
+      if (might > enemyMight) break;
+    }
+    if (chosen.reduce((n, u) => n + unitMight(s, u, "attack", bfId), 0) <= enemyMight) return null;
+  }
+  const group = solo ? [solo] : chosen;
+  if (!legalMoveDests(s, group.map((u) => u.iid)).includes(bfId)) return null;
+  return group;
+}
+
+/** Split ready units across fields. Leaves a unit home when every fight is a loss. */
+export function planRaids(s: GameState): RaidPlan[] {
+  if (s.phase !== "action" || s.showdown || s.lastCombat || s.winner !== null) return [];
+  const me = s.current;
+  const p = s.players[me];
+  if (!p) return [];
+  const pool = movableUnits(s);
+  if (!pool.length) return [];
+  const pointMatters = s.victory - p.points <= 2;
+
+  const dests = s.battlefields.flatMap((bf) => {
+    const enemies = bf.units.filter((u) => u.owner !== me);
+    const owners = new Set(enemies.map((u) => u.owner));
+    if (owners.size > 1) return [];
+    const weHold = bf.controller === me && bf.units.some((u) => u.owner === me);
+    const empty = enemies.length === 0;
+    const scores = !s.scoredThisTurn.includes(bf.id) && !weHold;
+    return [
+      {
+        bf,
+        enemyMight: enemies.reduce((n, u) => n + unitMight(s, u, "defend", bf.id), 0),
+        empty,
+        scores,
+        weHold,
+      },
+    ];
+  });
+
+  const rank = (d: (typeof dests)[number]) => {
+    if (d.empty && d.weHold) return 500;
+    if (d.empty && d.scores) return pointMatters ? 0 : 30;
+    if (!d.empty && d.scores) return pointMatters ? 10 : 0;
+    if (!d.empty) return 40;
+    return 50;
+  };
+  const ordered = dests.slice().sort((a, b) => rank(a) - rank(b) || a.enemyMight - b.enemyMight);
+
+  const used = new Set<string>();
+  const claimed = new Set(s.marchQueue.map((m) => m.battlefieldId));
+  const raids: RaidPlan[] = [];
+  for (const d of ordered) {
+    if (claimed.has(d.bf.id)) continue;
+    if (d.empty && (d.weHold || !d.scores)) continue;
+    const free = pool.filter((u) => !used.has(u.iid) && legalMoveDests(s, [u.iid]).includes(d.bf.id));
+    if (!free.length) continue;
+    const group = cheapestWin(s, free, d.empty ? 0 : d.enemyMight, d.bf.id);
+    if (!group) continue;
+    for (const u of group) used.add(u.iid);
+    raids.push({ iids: group.map((u) => u.iid), battlefieldId: d.bf.id });
+  }
+  return raids;
+}
+
+/** Next march-queue step: one planned raid, or launch when someone is staying home. */
+export function nextMarchAction(s: GameState): GameAction | null {
+  const plan = planRaids(s);
+  if (plan.length) {
+    const raid = plan[0]!;
+    return { type: "queue_move", iids: raid.iids, battlefieldId: raid.battlefieldId };
+  }
+  if (s.phase === "action" && !s.showdown && !s.lastCombat && s.marchQueue.length) {
+    return { type: "launch_marches" };
+  }
+  return null;
+}
+
 export function chooseAction(s: GameState): GameAction {
   const acts = getLegalActions(s);
   if (!acts.length) return { type: "pass" };
+
+  if (s.phase === "action" && !s.lastCombat) {
+    const nonMove = acts.filter((a) => a.type !== "move");
+    let best = nonMove[0] ?? acts[0]!;
+    let bestScore = -9999;
+    for (const a of nonMove) {
+      const sc = scoreAction(s, a);
+      if (sc > bestScore) {
+        bestScore = sc;
+        best = a;
+      }
+    }
+    const march = nextMarchAction(s);
+    if (march && bestScore <= 1) return march;
+    return best;
+  }
+
   let best = acts[0]!;
   let bestScore = -9999;
   for (const a of acts) {

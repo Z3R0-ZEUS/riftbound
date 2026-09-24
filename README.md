@@ -13,6 +13,7 @@ npm run dev
 
 Opens on port 8080. On Windows the Desktop shortcut runs this same script; `scripts/with-app-env.mjs` launches the local Vite binary (not a bare `vite` on PATH) and still applies `.grok/app-env.json` `VITE_` flags. See `docs/WINDOWS.md`.
 
+- **Duel** — 2 seats, 2 battlefields  
 - **Skirmish** — 3 seats, 3 battlefields  
 - **War** — 4 seats, 3 battlefields (first seat brings none)  
 - Mix humans and AI. Hands stay hidden until you pass the device.

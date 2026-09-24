@@ -51,6 +51,7 @@ export function CardView({
   playable,
   dim,
   drawn,
+  arriving,
   hidden,
   state,
   bfId,
@@ -64,6 +65,7 @@ export function CardView({
   playable?: boolean;
   dim?: boolean;
   drawn?: boolean;
+  arriving?: boolean;
   hidden?: boolean;
   state?: GameState;
   bfId?: string;
@@ -92,7 +94,7 @@ export function CardView({
     return (
       <button
         type="button"
-        className={cn("tcg-card", sizeClass(size))}
+        className={cn("tcg-card is-back", sizeClass(size))}
         onClick={onClick}
         aria-label="Facedown card"
       >
@@ -121,6 +123,7 @@ export function CardView({
         playable && "is-playable",
         dim && "is-dim",
         drawn && "is-drawn",
+        arriving && "is-arriving",
         inst?.exhausted && "is-exhausted",
       )}
       style={domain ? { ["--card-domain" as string]: `var(--domain-${domain})` } : undefined}
@@ -149,27 +152,25 @@ export function CardView({
       onPointerCancel={clearHold}
       aria-label={`${d.name}. ${kindLabel(d.kind)}. ${statLine(d, might)} ${d.text}`}
     >
-      <img src={d.art} alt="" crossOrigin="anonymous" />
-      {d.kind !== "battlefield" && d.kind !== "legend" && (
-        <span className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
-          <StatBadge kind="energy" value={d.energy} />
-          {d.power > 0 && <StatBadge kind="power" value={d.power} />}
-        </span>
-      )}
-      {typeof might === "number" && d.kind === "unit" && (
-        <span className="absolute top-1.5 right-1.5 z-10">
-          <StatBadge kind="might" value={might} />
-        </span>
-      )}
-      {inst && inst.damage > 0 && (
-        <span className="absolute top-8 right-1 rounded-sm bg-danger px-1 text-xs font-semibold text-fg">
-          −{inst.damage}
-        </span>
-      )}
-      <span className="tcg-nameplate">
+      <span className="tcg-art">
+        <img src={d.art} alt="" crossOrigin="anonymous" />
+        {d.kind !== "battlefield" && d.kind !== "legend" && (
+          <span className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1">
+            <StatBadge kind="energy" value={d.energy} />
+            {d.power > 0 && <StatBadge kind="power" value={d.power} />}
+          </span>
+        )}
+        {typeof might === "number" && d.kind === "unit" && (
+          <span className="absolute top-1.5 right-1.5 z-10">
+            <StatBadge kind="might" value={might} />
+          </span>
+        )}
+        {inst && inst.damage > 0 && <span className="damage-mark">−{inst.damage}</span>}
+      </span>
+      <span className="tcg-body">
         <span className="flex items-center justify-between gap-1">
-          <span className="font-display text-xs leading-tight tracking-wide text-fg">{d.name}</span>
-          <DomainPips domains={d.domains} />
+          <span className="tcg-title font-display">{d.name}</span>
+          {showKeys && <DomainPips domains={d.domains} />}
         </span>
         {showKeys && (
           <span className="mt-0.5 flex flex-wrap gap-0.5">
@@ -200,10 +201,10 @@ function statLine(d: CardDef, might?: number) {
 }
 
 function sizeClass(size: "xs" | "sm" | "md" | "lg") {
-  if (size === "xs") return "w-14 sm:w-16";
-  if (size === "sm") return "w-[4.5rem] sm:w-20";
-  if (size === "lg") return "w-36 sm:w-44";
-  return "w-[5.5rem] sm:w-28";
+  if (size === "xs") return "is-xs w-16 sm:w-[4.5rem]";
+  if (size === "sm") return "is-sm w-[4.75rem] sm:w-[5.25rem]";
+  if (size === "lg") return "is-lg w-40 sm:w-44";
+  return "is-md w-[5.75rem] sm:w-32";
 }
 
 export function CardSheet({ defId }: { defId: string }) {

@@ -36,7 +36,7 @@ export const LEGENDS: LegendInfo[] = [
     abilityText: "Once per turn: Recycle a rune to deal 1 damage to a unit.",
     championId: "jinx-champ",
     battlefieldId: "dragon",
-    art: "/art/jinx.jpg",
+    art: "/art/cards/legend-jinx.jpg",
     blurb: "Origins Champion Deck. Aggro — rockets, cheap units, first conquests.",
     product: "Origins Champion Deck",
   },
@@ -50,7 +50,7 @@ export const LEGENDS: LegendInfo[] = [
       "Once per turn: Exhaust your legend and a rune to return an enemy unit to base.",
     championId: "ahri-champ",
     battlefieldId: "abyss",
-    art: "/art/ahri.jpg",
+    art: "/art/cards/legend-ahri.jpg",
     blurb: "Origins constructed. Control — charm threats and out-draw the table.",
     product: "Origins",
   },
@@ -63,7 +63,7 @@ export const LEGENDS: LegendInfo[] = [
     abilityText: "The first unit you play each turn costs 1 less energy.",
     championId: "darius-champ",
     battlefieldId: "baron",
-    art: "/art/darius.jpg",
+    art: "/art/cards/legend-darius.jpg",
     blurb: "Origins constructed. Midrange smash — efficient bodies and executes.",
     product: "Origins",
   },
@@ -77,7 +77,7 @@ export const LEGENDS: LegendInfo[] = [
       "Once per turn: Ready a friendly unit at a battlefield you control.",
     championId: "garen-champ",
     battlefieldId: "nexus",
-    art: "/art/garen.jpg",
+    art: "/art/cards/legend-garen.jpg",
     blurb: "Proving Grounds. Hold — fat units and a legend that re-arms defenders.",
     product: "Proving Grounds",
   },
@@ -145,7 +145,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "Once per turn: Recycle a rune to deal 1 damage to a unit.",
-    art: "/art/jinx.jpg",
+    art: "/art/cards/legend-jinx.jpg",
     legendAbility: "jinx",
   },
   {
@@ -156,7 +156,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "Once per turn: Exhaust your legend and a rune to recall an enemy unit.",
-    art: "/art/ahri.jpg",
+    art: "/art/cards/legend-ahri.jpg",
     legendAbility: "ahri",
   },
   {
@@ -167,7 +167,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "The first unit you play each turn costs 1 less energy.",
-    art: "/art/darius.jpg",
+    art: "/art/cards/legend-darius.jpg",
     legendAbility: "darius",
   },
   {
@@ -178,7 +178,7 @@ const CARDS: CardDef[] = [
     energy: 0,
     power: 0,
     text: "Once per turn: Ready a friendly unit at a battlefield you control.",
-    art: "/art/garen.jpg",
+    art: "/art/cards/legend-garen.jpg",
     legendAbility: "garen",
   },
 
@@ -192,7 +192,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 5,
     text: "Assault 2. Champion — play from your champion zone.",
-    art: "/art/jinx.jpg",
+    art: "/art/cards/jinx-champ.jpg",
     assault: 2,
     isChampion: true,
   },
@@ -205,7 +205,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 4,
     text: "When you conquer, draw 1. Champion.",
-    art: "/art/ahri.jpg",
+    art: "/art/cards/ahri-champ.jpg",
     onConquer: { type: "draw", n: 1 },
     isChampion: true,
   },
@@ -218,7 +218,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 7,
     text: "Assault 1. Champion.",
-    art: "/art/darius.jpg",
+    art: "/art/cards/darius-champ.jpg",
     assault: 1,
     isChampion: true,
   },
@@ -231,7 +231,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 6,
     text: "Defender 2. Champion.",
-    art: "/art/garen.jpg",
+    art: "/art/cards/garen-champ.jpg",
     defender: 2,
     isChampion: true,
   },
@@ -246,7 +246,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 1,
     text: "A street rat with a pipe and a grudge.",
-    art: "/art/unit-zaun.jpg",
+    art: "/art/cards/scrapling.jpg",
   },
   {
     id: "powpow",
@@ -257,7 +257,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "Accelerate. Enters ready.",
-    art: "/art/unit-zaun.jpg",
+    art: "/art/cards/powpow.jpg",
     accelerate: true,
   },
   {
@@ -269,7 +269,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "Assault 1.",
-    art: "/art/unit-zaun.jpg",
+    art: "/art/cards/fishbones.jpg",
     assault: 1,
   },
   {
@@ -281,7 +281,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "When this dies in combat, deal 1 to an enemy unit here.",
-    art: "/art/unit-chomper.jpg",
+    art: "/art/cards/chompers.jpg",
     deathDamage: 1,
   },
   {
@@ -293,7 +293,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 4,
     text: "Ganking. May move battlefield to battlefield.",
-    art: "/art/jinx.jpg",
+    art: "/art/cards/rocket-girl.jpg",
     ganking: true,
   },
   {
@@ -305,7 +305,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "",
-    art: "/art/unit-zaun.jpg",
+    art: "/art/cards/street-demon.jpg",
   },
   {
     id: "zap",
@@ -315,7 +315,7 @@ const CARDS: CardDef[] = [
     energy: 1,
     power: 0,
     text: "Deal 1 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/zap.jpg",
     playEffect: { type: "damage", n: 1 },
   },
   {
@@ -326,7 +326,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Draw 2 cards.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/excited.jpg",
     playEffect: { type: "draw", n: 2 },
   },
   {
@@ -337,7 +337,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "Deal 2 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/wild-rocket.jpg",
     playEffect: { type: "damage", n: 2 },
   },
   {
@@ -348,7 +348,7 @@ const CARDS: CardDef[] = [
     energy: 4,
     power: 1,
     text: "Deal 3 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/super-mega.jpg",
     playEffect: { type: "damage", n: 3 },
   },
   {
@@ -359,7 +359,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Your units have +1 Might.",
-    art: "/art/gear.jpg",
+    art: "/art/cards/hex-rockets.jpg",
     gearAuraMight: 1,
   },
 
@@ -373,7 +373,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 1,
     text: "",
-    art: "/art/unit-monk.jpg",
+    art: "/art/cards/disciple.jpg",
   },
   {
     id: "fox-spirit",
@@ -384,7 +384,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "Accelerate.",
-    art: "/art/unit-spirit.jpg",
+    art: "/art/cards/fox-spirit.jpg",
     accelerate: true,
   },
   {
@@ -396,7 +396,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "Defender 1.",
-    art: "/art/unit-monk.jpg",
+    art: "/art/cards/ionian-monk.jpg",
     defender: 1,
   },
   {
@@ -408,7 +408,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 3,
     text: "Defender 2.",
-    art: "/art/unit-spirit.jpg",
+    art: "/art/cards/orb-fox.jpg",
     defender: 2,
   },
   {
@@ -420,7 +420,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 4,
     text: "Ganking.",
-    art: "/art/unit-spirit.jpg",
+    art: "/art/cards/spirit-vale.jpg",
     ganking: true,
   },
   {
@@ -431,7 +431,7 @@ const CARDS: CardDef[] = [
     energy: 1,
     power: 0,
     text: "Deal 1 damage to a unit. Draw 1.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/foxfire.jpg",
     playEffect: { type: "damage", n: 1 },
   },
   {
@@ -442,7 +442,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Return an enemy unit to its owner's base.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/charm.jpg",
     playEffect: { type: "recall" },
   },
   {
@@ -453,7 +453,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Draw 1 card. Ready a rune.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/essence.jpg",
     playEffect: { type: "draw", n: 1 },
   },
   {
@@ -464,7 +464,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "Ready a friendly unit.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/spirit-rush.jpg",
     playEffect: { type: "ready_unit" },
   },
   {
@@ -475,7 +475,7 @@ const CARDS: CardDef[] = [
     energy: 4,
     power: 1,
     text: "Draw 2 cards.",
-    art: "/art/spell-charm.jpg",
+    art: "/art/cards/soul-harvest.jpg",
     playEffect: { type: "draw", n: 2 },
   },
   {
@@ -486,7 +486,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "When played, draw 1.",
-    art: "/art/gear.jpg",
+    art: "/art/cards/moonstone.jpg",
     playEffect: { type: "draw", n: 1 },
   },
 
@@ -500,7 +500,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "",
-    art: "/art/unit-noxus.jpg",
+    art: "/art/cards/grunt.jpg",
   },
   {
     id: "legionnaire",
@@ -511,7 +511,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "",
-    art: "/art/unit-noxus.jpg",
+    art: "/art/cards/legionnaire.jpg",
   },
   {
     id: "brawler",
@@ -522,7 +522,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 4,
     text: "Assault 1.",
-    art: "/art/unit-brute.jpg",
+    art: "/art/cards/brawler.jpg",
     assault: 1,
   },
   {
@@ -534,7 +534,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 5,
     text: "",
-    art: "/art/unit-brute.jpg",
+    art: "/art/cards/trifarian.jpg",
   },
   {
     id: "hand-noxus",
@@ -545,7 +545,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 6,
     text: "Defender 1.",
-    art: "/art/darius.jpg",
+    art: "/art/cards/hand-noxus.jpg",
     defender: 1,
   },
   {
@@ -556,7 +556,7 @@ const CARDS: CardDef[] = [
     energy: 1,
     power: 0,
     text: "Deal 1 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/blood-noxus.jpg",
     playEffect: { type: "damage", n: 1 },
   },
   {
@@ -567,7 +567,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Deal 2 damage to a unit.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/apprehend.jpg",
     playEffect: { type: "damage", n: 2 },
   },
   {
@@ -578,7 +578,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "Deal 2 damage to each enemy unit at a battlefield.",
-    art: "/art/spell-rocket.jpg",
+    art: "/art/cards/decimate.jpg",
     playEffect: { type: "damage_all_enemy_at", n: 2 },
   },
   {
@@ -600,7 +600,7 @@ const CARDS: CardDef[] = [
     energy: 3,
     power: 0,
     text: "Your units have +1 Might.",
-    art: "/art/gear.jpg",
+    art: "/art/cards/banner.jpg",
     gearAuraMight: 1,
   },
 
@@ -614,7 +614,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "",
-    art: "/art/unit-demacia.jpg",
+    art: "/art/cards/vanguard.jpg",
   },
   {
     id: "guard",
@@ -625,7 +625,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "Defender 1.",
-    art: "/art/unit-demacia.jpg",
+    art: "/art/cards/guard.jpg",
     defender: 1,
   },
   {
@@ -637,7 +637,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 2,
     text: "Defender 2.",
-    art: "/art/unit-demacia.jpg",
+    art: "/art/cards/shield-wall.jpg",
     defender: 2,
   },
   {

@@ -229,9 +229,15 @@ function refreshControl(s: GameState, bf: BattlefieldState): number | null {
   return bf.controller;
 }
 
-/** War: first seat does not bring a battlefield. Skirmish: every seat does. */
+/** War: first seat does not bring a battlefield. Duel and Skirmish: every seat does. */
 export function battlefieldSeats<T>(mode: GameState["mode"], seats: T[]): T[] {
   return mode === "war" ? seats.slice(1) : seats;
+}
+
+export function modeLabel(mode: GameState["mode"]): string {
+  if (mode === "duel") return "Duel";
+  if (mode === "war") return "War";
+  return "Skirmish";
 }
 
 /** Eighth point on a conquer only if every other field was already scored this turn. */
@@ -1004,7 +1010,7 @@ export function createGame(setup: SetupConfig): GameState {
     });
   });
 
-  log(s, `${setup.mode === "war" ? "War" : "Skirmish"} — first to 8. ${s.battlefields.length} battlefields.`);
+  log(s, `${modeLabel(setup.mode)} — first to 8. ${s.battlefields.length} battlefields.`);
   // Flush AI mulligans at the start of the chain
   let guard = 0;
   while (s.phase === "mulligan" && player(s).kind === "ai" && guard++ < 8) {

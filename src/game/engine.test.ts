@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { stepAi } from "./ai.ts";
+import { chooseAction, stepAi } from "./ai.ts";
 import {
   applyAction,
   battlefieldSeats,
@@ -45,6 +45,7 @@ function windowSig(s: GameState): string {
     s.showdown?.consecutivePasses ?? "-",
     s.targeting?.effect.type ?? "-",
     s.players.map((p) => `${p.hand.length}/${p.base.length}/${p.points}/${energyOf(p)}`).join(";"),
+    s.marchQueue.map((m) => `${m.battlefieldId}:${m.iids.join("+")}`).join(","),
     s.battlefields.map((b) => `${b.controller ?? "x"}:${b.units.map((u) => u.iid).join("+")}`).join(","),
   ].join("|");
 }
@@ -245,6 +246,133 @@ const WAR: SeatConfig[] = [
   { name: "C", kind: "human", legendId: "ahri" },
   { name: "D", kind: "human", legendId: "darius" },
 ];
+
+const DUEL: SeatConfig[] = [
+  { name: "You", kind: "human", legendId: "jinx" },
+  { name: "Rival", kind: "human", legendId: "garen" },
+];
+
+const DUEL_AI: SeatConfig[] = [
+  { name: "AI1", kind: "ai", legendId: "jinx" },
+  { name: "AI2", kind: "ai", legendId: "garen" },
+];
+
+function readyToMarch(seed: number): GameState {
+  const s = toAction(createGame({ mode: "duel", seats: DUEL, seed }));
+  const p = s.players[s.current]!;
+  p.hand = [];
+  p.legendUsed = true;
+  p.champion = null;
+  p.base = [];
+  return s;
+}
+
+describe("Duel seating", () => {
+  it("uses two seats, two battlefields, and races to 8", () => {
+    const s = createGame({ mode: "duel", seats: DUEL, seed: 2 });
+    assert.equal(s.players.length, 2);
+    assert.equal(s.victory, 8);
+    assert.equal(s.battlefields.length, 2);
+    assert.deepEqual(
+      s.battlefields.map((b) => b.defId),
+      ["dragon", "nexus"],
+    );
+    assert.match(s.log[0]!.t, /Duel — first to 8\. 2 battlefields/);
+    assert.deepEqual(
+      battlefieldSeats("duel", DUEL).map((seat) => seat.legendId),
+      ["jinx", "garen"],
+    );
+  });
+});
+
+describe("AI march planner", () => {
+  it("splits two ready units across two empty fields", () => {
+    let s = readyToMarch(3);
+    const me = s.current;
+    s.players[me]!.base.push(unit("small", me, "scrapling"), unit("big", me, "fishbones"));
+    const a1 = chooseAction(s);
+    assert.equal(a1.type, "queue_move");
+    if (a1.type !== "queue_move") return;
+    assert.deepEqual(a1.iids, ["small"]);
+    s = applyAction(s, a1);
+    assert.equal(s.marchQueue.length, 1);
+    const a2 = chooseAction(s);
+    assert.equal(a2.type, "queue_move");
+    if (a2.type !== "queue_move") return;
+    assert.deepEqual(a2.iids, ["big"]);
+    assert.notEqual(a2.battlefieldId, a1.battlefieldId);
+    s = applyAction(s, a2);
+    const smallBf = s.battlefields.find((b) => b.units.some((u) => u.iid === "small"));
+    const bigBf = s.battlefields.find((b) => b.units.some((u) => u.iid === "big"));
+    assert.ok(smallBf && bigBf);
+    assert.notEqual(smallBf!.id, bigBf!.id);
+    assert.equal(s.marchQueue.length, 0);
+  });
+
+  it("sends the smallest force that wins and leaves the rest home", () => {
+    let s = readyToMarch(4);
+    const me = s.current;
+    const foe = (me + 1) % 2;
+    s.battlefields[0]!.units.push(unit("e0", foe, "vanguard"));
+    s.battlefields[1]!.units.push(unit("e1", foe, "hand-noxus"));
+    s.players[me]!.base.push(unit("small", me, "scrapling"), unit("big", me, "fishbones"));
+    const a1 = chooseAction(s);
+    assert.equal(a1.type, "queue_move");
+    if (a1.type !== "queue_move") return;
+    assert.deepEqual(a1.iids, ["big"]);
+    assert.equal(a1.battlefieldId, s.battlefields[0]!.id);
+    s = applyAction(s, a1);
+    const a2 = chooseAction(s);
+    assert.equal(a2.type, "launch_marches");
+    s = applyAction(s, a2);
+    assert.equal(s.showdown?.battlefieldId, s.battlefields[0]!.id);
+    assert.ok(s.players[me]!.base.some((u) => u.iid === "small"));
+    assert.ok(s.battlefields[0]!.units.some((u) => u.iid === "big"));
+    assert.ok(!s.battlefields[1]!.units.some((u) => u.owner === me));
+  });
+
+  it("takes an empty field before a fight when the point matters", () => {
+    let s = readyToMarch(5);
+    const me = s.current;
+    const foe = (me + 1) % 2;
+    s.players[me]!.points = 6;
+    s.battlefields[0]!.units.push(unit("e0", foe, "vanguard"));
+    s.players[me]!.base.push(unit("small", me, "scrapling"), unit("big", me, "fishbones"));
+    const a1 = chooseAction(s);
+    assert.equal(a1.type, "queue_move");
+    if (a1.type !== "queue_move") return;
+    assert.equal(a1.battlefieldId, s.battlefields[1]!.id);
+    assert.deepEqual(a1.iids, ["small"]);
+    s = applyAction(s, a1);
+    const a2 = chooseAction(s);
+    assert.equal(a2.type, "queue_move");
+    if (a2.type !== "queue_move") return;
+    assert.equal(a2.battlefieldId, s.battlefields[0]!.id);
+    assert.deepEqual(a2.iids, ["big"]);
+  });
+
+  it("passes instead of marching into a loss", () => {
+    const s = readyToMarch(6);
+    const me = s.current;
+    const foe = (me + 1) % 2;
+    s.battlefields[0]!.units.push(unit("e0", foe, "vanguard"));
+    s.battlefields[1]!.units.push(unit("e1", foe, "vanguard"));
+    s.players[me]!.base.push(unit("small", me, "scrapling"));
+    assert.deepEqual(chooseAction(s), { type: "pass" });
+  });
+
+  it("plays an all-AI duel to a winner without a stuck window", () => {
+    let s = createGame({ mode: "duel", seats: DUEL_AI, seed: 4 });
+    let guard = 0;
+    while (s.winner === null && guard++ < 800) {
+      const before = windowSig(s);
+      s = s.lastCombat ? applyAction(s, { type: "dismiss_combat" }) : stepAi(s);
+      const after = windowSig(s);
+      if (before === after) assert.fail(`duel AI froze at ${before}`);
+    }
+    assert.ok(s.winner !== null, "expected a duel winner within 800 AI steps");
+  });
+});
 
 describe("War seating", () => {
   it("uses three battlefields and skips the first seat's field", () => {

@@ -8,7 +8,7 @@ export type Phase =
   | "showdown"
   | "pass_device"
   | "gameover";
-export type Mode = "skirmish" | "war";
+export type Mode = "duel" | "skirmish" | "war";
 
 export type Effect =
   | { type: "draw"; n: number }

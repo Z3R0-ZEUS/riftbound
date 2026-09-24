@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { BookOpen, Bot, Download, Swords, Users, Volume2, VolumeX } from "lucide-react";
+import { BookOpen, Bot, Download, Sword, Swords, Users, Volume2, VolumeX } from "lucide-react";
 import { sfx } from "@/game/audio";
 import { DOMAINS, getLegend, LEGENDS } from "@/game/cards";
+import { modeLabel } from "@/game/engine";
 import { PRODUCT_ART } from "@/game/products";
 import { useGame } from "@/game/store";
 import { cn } from "@/lib/cn";
@@ -84,20 +85,37 @@ export function TitleScreen() {
       <div className="vignette" />
       <div className="title-stage mx-auto flex min-h-dvh max-w-5xl flex-col justify-end px-5 pb-10 pt-12 sm:justify-end sm:pb-14">
         <div className="flex items-start justify-between gap-3">
-          <p className="kicker">Local table · 3–4 seats</p>
+          <p className="kicker">Local table · 2–4 seats</p>
           <MuteToggle />
         </div>
         <div className="title-wordmark mt-5 max-w-3xl">
-          <h1 className="font-display text-6xl sm:text-8xl">Riftbound</h1>
+          <h1 className="font-display">Riftbound</h1>
           <p className="font-serif mt-4 max-w-xl text-xl leading-snug text-fg/90 sm:text-2xl">
             Open the box. Sit the table. First to eight.
           </p>
           <p className="mt-3 max-w-lg text-sm leading-relaxed text-muted">
-            Pass-and-play Skirmish or War. Humans and AI. Hands stay hidden until you pass the device.
+            Pass-and-play Duel, Skirmish, or War. Humans and AI. Hands stay hidden until you pass the device.
           </p>
         </div>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <button
+            type="button"
+            className="mode-card group overflow-hidden rounded-2xl text-left transition-transform duration-[220ms] hover:-translate-y-1 active:scale-[0.99]"
+            onClick={() => {
+              click();
+              setSeatCount(2);
+              fillHumans();
+              setScreen("setup");
+            }}
+          >
+            <img src="/art/bf-nexus.jpg" alt="" crossOrigin="anonymous" className="mode-card-art absolute inset-0 h-full w-full object-cover" />
+            <div className="relative p-5">
+              <Sword className="size-5 text-accent" />
+              <h2 className="font-display mt-3 text-2xl tracking-wide">Duel</h2>
+              <p className="mt-1 text-sm text-muted">2 seats · 2 battlefields. You and one opponent, first to 8.</p>
+            </div>
+          </button>
           <button
             type="button"
             className="mode-card group overflow-hidden rounded-2xl text-left transition-transform duration-[220ms] hover:-translate-y-1 active:scale-[0.99]"
@@ -108,7 +126,7 @@ export function TitleScreen() {
               setScreen("setup");
             }}
           >
-            <img src="/art/bf-dragon.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+            <img src="/art/bf-dragon.jpg" alt="" crossOrigin="anonymous" className="mode-card-art absolute inset-0 h-full w-full object-cover" />
             <div className="relative p-5">
               <Users className="size-5 text-accent" />
               <h2 className="font-display mt-3 text-2xl tracking-wide">Skirmish</h2>
@@ -125,7 +143,7 @@ export function TitleScreen() {
               setScreen("setup");
             }}
           >
-            <img src="/art/bf-baron.jpg" alt="" crossOrigin="anonymous" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+            <img src="/art/bf-baron.jpg" alt="" crossOrigin="anonymous" className="mode-card-art absolute inset-0 h-full w-full object-cover" />
             <div className="relative p-5">
               <Swords className="size-5 text-win" />
               <h2 className="font-display mt-3 text-2xl tracking-wide">War</h2>
@@ -135,6 +153,19 @@ export function TitleScreen() {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className="ghost-plaque inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium transition-colors duration-[180ms] hover:text-fg"
+            onClick={() => {
+              click();
+              setSeatCount(2);
+              fillAi();
+              start();
+            }}
+          >
+            <Bot className="size-4" />
+            You vs AI · Duel
+          </button>
           <button
             type="button"
             className="ghost-plaque inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium transition-colors duration-[180ms] hover:text-fg"
@@ -220,7 +251,7 @@ export function SetupScreen() {
         </div>
         <p className="kicker mt-7">Seat the table</p>
         <h1 className="font-display mt-2 text-3xl tracking-wide sm:text-5xl">
-          {setup.mode === "war" ? "War" : "Skirmish"} · {n} seats
+          {modeLabel(setup.mode)} · {n} seats
         </h1>
         <p className="font-serif mt-3 max-w-2xl text-lg leading-snug text-fg/85">
           Choose a champion deck for each seat. All eight legends are in the box.
@@ -229,11 +260,20 @@ export function SetupScreen() {
           Jinx, Garen, Ahri, Darius, Viktor, Lee Sin, Annie, and Lux. Mark humans or AI. Hands stay hidden between
           seats — pass the device when the table asks.
           {setup.mode === "war" ? " War: seat 1 brings no battlefield." : ""}
+          {setup.mode === "duel" ? " Duel: both seats bring a battlefield." : ""}
         </p>
 
         <section className="mt-6">
           <h2 className="text-xs font-medium tracking-[0.18em] text-subtle uppercase">Mode</h2>
           <div className="mt-2 flex flex-wrap gap-2">
+            <Toggle
+              active={n === 2}
+              onClick={() => {
+                click();
+                setSeatCount(2);
+              }}
+              label="Duel · 2"
+            />
             <Toggle
               active={n === 3}
               onClick={() => {
@@ -280,10 +320,15 @@ export function SetupScreen() {
             const legend = getLegend(seat.legendId);
             return (
               <article key={i} className="deck-box">
-                <div className="relative h-28">
+                <div className="deck-portrait relative">
                   <img src={legend.art} alt="" crossOrigin="anonymous" className="h-full w-full object-cover object-top" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#121814] via-[#121814]/25 to-transparent" />
                   <span className="absolute bottom-3 left-3 font-display text-lg">Seat {i + 1}</span>
+                  <span className="domain-ribbon absolute top-3 left-3">
+                    {legend.domains.map((d) => (
+                      <span key={d} className="pip" style={{ background: `var(--domain-${d})` }} title={DOMAINS[d].label} />
+                    ))}
+                  </span>
                   {setup.mode === "war" && i === 0 && (
                     <span className="metal-token absolute top-3 right-3 rounded-full px-2 py-1 text-[10px] font-medium text-win">
                       No battlefield
@@ -408,7 +453,7 @@ export function RulesModal() {
           <p>Pay energy by exhausting runes. Pay power by recycling runes of the card's domain (they return to the bottom of your rune deck).</p>
           <p>Play units to your base, then click ready units to form a raid and send them onto a battlefield. Send the whole group to one field, or split them across several — planned marches resolve as Showdowns in order. During a Showdown both fighters may play Action and Reaction spells, and either can ask a third player for help, before Might is compared. After a fight you can still march any units that are ready.</p>
           <p>Your eighth point cannot come from a single last-second conquer unless you scored every battlefield this turn. Holding still wins immediately.</p>
-          <p>Skirmish uses 3 battlefields. War (4 players) uses 3 — the first seat does not bring one.</p>
+          <p>Duel is 2 seats and 2 battlefields. Skirmish uses 3 battlefields. War (4 players) uses 3 — the first seat does not bring one.</p>
           <p>Every champion deck is in the box: Jinx, Garen, Ahri, Darius, Viktor, Lee Sin, Annie, Lux. Nothing is locked and nothing is sold.</p>
         </div>
         <FanNote className="mt-5 pt-4" />
