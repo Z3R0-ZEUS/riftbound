@@ -649,7 +649,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 3,
     text: "Assault 1.",
-    art: "/art/unit-demacia.jpg",
+    art: "/art/cards/justice.jpg",
     assault: 1,
   },
   {
@@ -661,7 +661,7 @@ const CARDS: CardDef[] = [
     power: 0,
     might: 4,
     text: "",
-    art: "/art/unit-demacia.jpg",
+    art: "/art/cards/silencer.jpg",
   },
   {
     id: "judicator",
@@ -672,7 +672,7 @@ const CARDS: CardDef[] = [
     power: 1,
     might: 6,
     text: "Defender 2.",
-    art: "/art/garen.jpg",
+    art: "/art/cards/judicator.jpg",
     defender: 2,
   },
   {
@@ -683,7 +683,7 @@ const CARDS: CardDef[] = [
     energy: 1,
     power: 0,
     text: "A friendly unit gets +2 Might this turn.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/courage.jpg",
     playEffect: { type: "buff", n: 2 },
   },
   {
@@ -694,7 +694,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "Ready a friendly unit.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/rally.jpg",
     playEffect: { type: "ready_unit" },
   },
   {
@@ -705,7 +705,7 @@ const CARDS: CardDef[] = [
     energy: 4,
     power: 1,
     text: "Deal 4 damage to a unit.",
-    art: "/art/spell-light.jpg",
+    art: "/art/cards/judgment.jpg",
     playEffect: { type: "damage", n: 4 },
   },
   {
@@ -716,7 +716,7 @@ const CARDS: CardDef[] = [
     energy: 2,
     power: 0,
     text: "When you hold, ready a rune.",
-    art: "/art/gear.jpg",
+    art: "/art/cards/crest.jpg",
     onHold: { type: "ready_rune" },
   },
 
